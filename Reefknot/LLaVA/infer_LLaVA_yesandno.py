@@ -33,11 +33,10 @@ from llava.DTC import DTC_function
 from PIL import Image
 import math
 
-DTC_function()
 
-def get_path(image_id):
-    Image_path1 = '/hpc2hdd/home/yuxuanzhao/lijungang/nk_code/LLM/Datasets/VG_dataset/VG_100K'
-    Image_path2 = '/hpc2hdd/home/yuxuanzhao/lijungang/nk_code/LLM/Datasets/VG_dataset/VG_100K_2'
+def get_path(image_id, image_folder):
+    Image_path1 = os.path.join(image_folder, 'VG_100K')
+    Image_path2 = os.path.join(image_folder, 'VG_100K_2')
     # if image is not None:
     image_id = str(image_id)
     if image_id.endswith('.jpg'):
@@ -89,12 +88,16 @@ def get_chunk(lst, n, k):
 
 
 def eval_model(args):
+    if args.enable_dtc:
+        DTC_function()
+
     # Model
     disable_torch_init()
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(
-        model_path, args.model_base, model_name
+        model_path, args.model_base, model_name,
+        load_4bit=args.quantized, device_map="auto"
     )
 
     questions = [
@@ -107,7 +110,7 @@ def eval_model(args):
     for line in tqdm(questions):
         image_file = line["image_id"] + ".jpg"
         # image_path = os.path.join(args.image_folder, image_file)
-        image_path = get_path(line["image_id"])
+        image_path = get_path(line["image_id"], args.image_folder)
         if not os.path.exists(image_path):
             print(f"Image file {image_file} not found, skipping.")
             continue 
@@ -181,6 +184,7 @@ def eval_model(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=str, default="facebook/opt-350m")
+    parser.add_argument("--image_folder", type=str, default="/content/VG_Dataset_Extracted")
     parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--question-file", type=str, default="tables/question.jsonl")
     parser.add_argument("--answers-file", type=str, default="answer.jsonl")
@@ -194,6 +198,8 @@ if __name__ == "__main__":
     parser.add_argument("--apha", type=float, default=0.1)
     parser.add_argument("--threshold", type=float, default=0.9)
     parser.add_argument("--layer", type=int, default=38)
+    parser.add_argument("--quantized", action='store_true', help="Use 4 bit quantized model", default=False)
+    parser.add_argument("--enable_dtc", action='store_true', help="Enable DTC function", default=False)
     args = parser.parse_args()
 
     eval_model(args)
