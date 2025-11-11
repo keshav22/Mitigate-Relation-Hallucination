@@ -179,6 +179,7 @@ def eval_model(args):
                 )
                 save_layer_scores(layer_scores, i)
                 torch.save(output_ids.scores[0], f"output_scores_{i}.pt")
+                output_ids = output_ids.sequences
             else:
                 output_ids = model.generate(
                 input_ids,
@@ -192,9 +193,10 @@ def eval_model(args):
                 use_cache=True,
                 output_scores=True
             )
+                
         mllm = args.model_path.split('/')[-1]
         outputs = tokenizer.batch_decode(
-            output_ids.sequences, skip_special_tokens=True
+            output_ids, skip_special_tokens=True
         )[0].strip()
         ans_file.write(
             json.dumps(
