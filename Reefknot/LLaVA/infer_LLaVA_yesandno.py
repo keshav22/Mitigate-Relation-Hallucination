@@ -155,7 +155,7 @@ def eval_model(args):
                     temperature=args.temperature,
                     top_p=args.top_p,
                     num_beams=args.num_beams,
-                    max_new_tokens=2,
+                    max_new_tokens=10,
                     use_cache=True,
                     output_scores=True,
                     apha=args.apha,
@@ -172,7 +172,7 @@ def eval_model(args):
                 temperature=args.temperature,
                 top_p=args.top_p,
                 num_beams=args.num_beams,
-                max_new_tokens=2,
+                max_new_tokens=10,
                 use_cache=True,
                 output_scores=True
             )
