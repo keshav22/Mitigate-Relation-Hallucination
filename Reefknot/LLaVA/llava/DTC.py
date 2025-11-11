@@ -217,6 +217,7 @@ def DTC_function():
 
           
             if eos_token_id_tensor is not None:
+                eos_token_id_tensor = eos_token_id_tensor.to(device)
                 unfinished_sequences = unfinished_sequences.mul(
                     next_tokens.tile(eos_token_id_tensor.shape[0], 1)
                     .ne(eos_token_id_tensor.unsqueeze(1))
