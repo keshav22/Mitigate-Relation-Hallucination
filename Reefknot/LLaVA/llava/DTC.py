@@ -198,7 +198,7 @@ def DTC_function():
 
             device = next_tokens.device
             unfinished_sequences = unfinished_sequences.to(device)
-            
+            input_ids = input_ids.to(device)
             if eos_token_id is not None:
                 if pad_token_id is None:
                     raise ValueError("If `eos_token_id` is defined, make sure that `pad_token_id` is defined.")
