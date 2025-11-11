@@ -162,6 +162,7 @@ def eval_model(args):
                     threshold=args.threshold,
                     layer=args.layer,
                 ) 
+                output_ids = output_ids.sequences
             else:
                 output_ids = model.generate(
                 input_ids,
@@ -175,9 +176,10 @@ def eval_model(args):
                 use_cache=True,
                 output_scores=True
             )
+                
         mllm = args.model_path.split('/')[-1]
         outputs = tokenizer.batch_decode(
-            output_ids.sequences, skip_special_tokens=True
+            output_ids, skip_special_tokens=True
         )[0].strip()
         ans_file.write(
             json.dumps(
