@@ -148,7 +148,7 @@ def eval_model(args):
         with torch.inference_mode():
             layer_score, output_ids = model.generate(
                 input_ids,
-                images=image_tensor.unsqueeze(0).half().cuda(),
+                images=image_tensor.unsqueeze(0).half().to(model.device),
                 image_sizes=[image.size],
                 do_sample=False, # True if args.temperature > 0 else False,
                 temperature=args.temperature,
@@ -162,7 +162,7 @@ def eval_model(args):
                 layer=args.layer,
             ) if args.enable_dtc else model.generate(
                 input_ids,
-                images=image_tensor.unsqueeze(0).half().cuda(),
+                images=image_tensor.unsqueeze(0).half().to(model.device),
                 image_sizes=[image.size],
                 do_sample=False, # True if args.temperature > 0 else False,
                 temperature=args.temperature,
