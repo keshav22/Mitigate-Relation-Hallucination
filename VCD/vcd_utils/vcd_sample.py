@@ -250,13 +250,7 @@ def sample(
         return input_ids
 
 
-def patched_validate_model_kwargs(self, model_kwargs):
-    # allow custom kwargs without raising an error
-    # useful for VCD, contrastive decoding, multimodal extensions, etc.
-    return model_kwargs
-
 def evolve_vcd_sampling():
     transformers.generation.utils.GenerationMixin.sample = sample
     # sample is now a protected function in the latest Transformers library
     transformers.generation.utils.GenerationMixin._sample = sample
-    transformers.generation.utils.GenerationMixin._validate_model_kwargs = patched_validate_model_kwargs
