@@ -1,2 +1,5 @@
-model_name,num_params,quantization,mitigation_technique,result_path,apha,layer,threshold,temperature,conv_mode
-LLAVA,7B,4-bit,DTC,Experiment_Results/DTC_Quantized_7B,0.1,38,0.9,0,vicuna_v1
+model_name,num_params,quantization,mitigation_technique,result_path,apha,layer,threshold,temperature,conv_mode,max_new_tokens
+LLAVA,7B,4-bit,DTC,Experiment_Results/DTC_Quantized_7B,0.1,38,0.9,0,vicuna_v1,2
+LLAVA,7B,None,DTC,Experiment_Results/DTC_7B,0.1,38,0.9,0,vicuna_v1,2
+LLAVA,7B,None,DTC,Experiment_Results/DTC_7B_10T,0.1,38,0.9,0,vicuna_v1,5
+LLAVA,7B,None,None,Experiment_Results/7B_10T,0.1,38,0.9,0,vicuna_v1,5
