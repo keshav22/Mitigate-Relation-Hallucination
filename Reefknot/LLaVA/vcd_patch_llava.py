@@ -91,7 +91,7 @@ def eval_model(args):
 
         input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(model.device)
 
-        image = Image.open(os.path.join(args.image_folder, image_file))
+        image = Image.open(image_path)
         image_tensor = image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
         
         if args.use_cd:
