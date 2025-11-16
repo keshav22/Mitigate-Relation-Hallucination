@@ -2,7 +2,7 @@ import torch
 
 def add_diffusion_noise(image_tensor, noise_step):
     num_steps = 1000  # Number of diffusion steps
-
+    print(f"Adding diffusion noise at step {noise_step}")
     # decide beta in each step
     betas = torch.linspace(-6,6,num_steps)
     betas = torch.sigmoid(betas) * (0.5e-2 - 1e-5) + 1e-5

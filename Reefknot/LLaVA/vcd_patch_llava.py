@@ -22,9 +22,10 @@ from transformers import set_seed
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise
 from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling
-evolve_vcd_sampling()
+
 
 
 def get_path(image_id, image_folder):
@@ -57,6 +58,7 @@ def get_chunk(lst, n, k):
 
 def eval_model(args):
     # Model
+    evolve_vcd_sampling()
     disable_torch_init()
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
@@ -139,12 +141,12 @@ def eval_model(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model-path", type=str, default="facebook/opt-350m")
+    parser.add_argument("--model-path", type=str, default="")
     parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--image_folder", type=str, default="")
     parser.add_argument("--question-file", type=str, default="tables/question.jsonl")
     parser.add_argument("--answers-file", type=str, default="answer.jsonl")
-    parser.add_argument("--conv-mode", type=str, default="llava_v1")
+    parser.add_argument("--conv-mode", type=str, default="")
     parser.add_argument("--num-chunks", type=int, default=1)
     parser.add_argument("--chunk-idx", type=int, default=0)
     parser.add_argument("--temperature", type=float, default=0)

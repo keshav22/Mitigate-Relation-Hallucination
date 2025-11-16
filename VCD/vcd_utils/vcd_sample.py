@@ -249,8 +249,14 @@ def sample(
     else:
         return input_ids
 
+def patched_validate_model_kwargs(self, model_kwargs):
+    return model_kwargs
+
+
 
 def evolve_vcd_sampling():
+    print("Patching Transformers sample function for VCD...")
     transformers.generation.utils.GenerationMixin.sample = sample
     # sample is now a protected function in the latest Transformers library
     transformers.generation.utils.GenerationMixin._sample = sample
+    transformers.generation.utils.GenerationMixin._validate_model_kwargs = patched_validate_model_kwargs
