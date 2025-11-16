@@ -39,7 +39,7 @@ def sample(
     **model_kwargs,
 ) -> Union[SampleOutput, torch.LongTensor]:
 
-    print("Using patched sample function for VCD...")
+    # print("Using patched sample function for VCD...")
 
     # init values
     logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
@@ -255,7 +255,7 @@ def patched_validate_model_kwargs(self, model_kwargs):
 
 
 def evolve_vcd_sampling():
-    print("Patching Transformers sample function for VCD...")
+    # print("Patching Transformers sample function for VCD...")
     transformers.generation.utils.GenerationMixin.sample = sample
     # sample is now a protected function in the latest Transformers library
     transformers.generation.utils.GenerationMixin._sample = sample
