@@ -24,6 +24,34 @@ from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling
 evolve_vcd_sampling()
 
 
+def get_path(image_id, image_folder):
+    Image_path1 = os.path.join(image_folder, 'VG_100K')
+    Image_path2 = os.path.join(image_folder, 'VG_100K_2')
+    # if image is not None:
+    image_id = str(image_id)
+    if image_id.endswith('.jpg'):
+        image_id = image_id.split('.')[0]
+    if os.path.exists(os.path.join(Image_path1, image_id+'.jpg')):
+        # print('Find image in VG100K(small one!) image path is:',os.path.join(Image_path1, image_id+'.jpg'))
+        return os.path.join(Image_path1, image_id+'.jpg')
+    elif os.path.exists(os.path.join(Image_path2, image_id+'.jpg')):
+        return os.path.join(Image_path2, image_id+'.jpg')
+    else:
+        print('Cannot find image {}.jpg'.format(image_id))
+        return None
+    
+def split_list(lst, n):
+    """Split a list into n (roughly) equal-sized chunks"""
+    chunk_size = math.ceil(len(lst) / n)  # integer division
+    return [lst[i : i + chunk_size] for i in range(0, len(lst), chunk_size)]
+
+
+def get_chunk(lst, n, k):
+    chunks = split_list(lst, n)
+    return chunks[k]
+
+
+
 def eval_model(args):
     # Model
     disable_torch_init()
