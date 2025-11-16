@@ -79,7 +79,7 @@ def eval_model(args):
                 images_cd=(image_tensor_cd.unsqueeze(0).half().to(model.device) if image_tensor_cd is not None else None),
                 cd_alpha = args.cd_alpha,
                 cd_beta = args.cd_beta,
-                do_sample=True,
+                do_sample=False,
                 temperature=args.temperature,
                 max_new_tokens=args.max_new_tokens,
                 use_cache=True,
@@ -116,12 +116,12 @@ if __name__ == "__main__":
     parser.add_argument("--chunk-idx", type=int, default=0)
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--top_p", type=float, default=1)
-    parser.add_argument("--top_k", type=int, default=None)
-
+    parser.add_argument("--max_new_tokens", type=int, default=2)
     parser.add_argument("--noise_step", type=int, default=500)
     parser.add_argument("--use_cd", action='store_true', default=False)
     parser.add_argument("--cd_alpha", type=float, default=1)
-    parser.add_argument("--cd_beta", type=float, default=0.1)
+    parser.add_argument("--cd_beta", type=float, default=0.2)
+    parser.add_argument("--quantized", action='store_true', help="Use 4 bit quantized model", default=False)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     set_seed(args.seed)
