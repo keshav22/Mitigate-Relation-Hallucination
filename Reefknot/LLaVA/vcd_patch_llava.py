@@ -19,6 +19,9 @@ import math
 
 # import kornia
 from transformers import set_seed
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise
 from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling
 evolve_vcd_sampling()
