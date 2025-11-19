@@ -139,7 +139,7 @@ def eval_model(args):
                 prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
             )
             .unsqueeze(0)
-            .cuda()
+            .to(model.device)
         )
 
         image = Image.open(image_path).convert("RGB")

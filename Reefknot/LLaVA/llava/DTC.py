@@ -196,7 +196,9 @@ def DTC_function():
             
             next_tokens = torch.argmax(next_tokens_scores, dim=-1)
 
-           
+            device = next_tokens.device
+            unfinished_sequences = unfinished_sequences.to(device)
+            input_ids = input_ids.to(device)
             if eos_token_id is not None:
                 if pad_token_id is None:
                     raise ValueError("If `eos_token_id` is defined, make sure that `pad_token_id` is defined.")
@@ -215,6 +217,7 @@ def DTC_function():
 
           
             if eos_token_id_tensor is not None:
+                eos_token_id_tensor = eos_token_id_tensor.to(device)
                 unfinished_sequences = unfinished_sequences.mul(
                     next_tokens.tile(eos_token_id_tensor.shape[0], 1)
                     .ne(eos_token_id_tensor.unsqueeze(1))
