@@ -107,7 +107,7 @@ def eval_model(args):
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
     ans_file = open(answers_file, "w")
-    for line in tqdm(questions):
+    for i, line in enumerate(tqdm(questions)):
         image_file = line["image_id"] + ".jpg"
         # image_path = os.path.join(args.image_folder, image_file)
         image_path = get_path(line["image_id"], args.image_folder)
@@ -147,7 +147,7 @@ def eval_model(args):
 
         with torch.inference_mode():
             if args.enable_dtc:
-                layer_score, output_ids = model.generate(
+                layer_scores, output_ids = model.generate(
                     input_ids,
                     images=image_tensor.unsqueeze(0).half().cuda(),
                     image_sizes=[image.size],
@@ -161,7 +161,8 @@ def eval_model(args):
                     apha=args.apha,
                     threshold=args.threshold,
                     layer=args.layer,
-                ) 
+                )
+                torch.save(layer_scores, f"layer_scores_{i}.pt")
             else:
                 output_ids = model.generate(
                 input_ids,
