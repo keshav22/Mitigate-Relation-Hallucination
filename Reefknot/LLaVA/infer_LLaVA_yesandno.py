@@ -163,6 +163,7 @@ def eval_model(args):
                     layer=args.layer,
                 )
                 torch.save(layer_scores, f"layer_scores_{i}.pt")
+                torch.save(output_ids.scores[0], f"output_scores_{i}.pt")
             else:
                 output_ids = model.generate(
                 input_ids,
