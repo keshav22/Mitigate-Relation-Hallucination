@@ -67,7 +67,7 @@ def normalize_to_yesno(raw):
     return None
 
 
-def evaluate_mcq_choice(path: Path):
+def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
     if not path.exists():
         return {"file": str(path), "error": f"File not found: {path}"}
 
@@ -164,6 +164,14 @@ def evaluate_mcq_choice(path: Path):
         "parse_errors_label": counts.get("mcq_parse_error_label", 0),
         "parse_errors_response": counts.get("mcq_parse_error_response", 0),
         "ambiguous_responses": sorted(ambiguous_responses),
+    } if detailed_metrics else {
+        "total_lines": total_lines,
+        "evaluated_lines": counts.get("evaluated_mcq", 0),
+        "accuracy_over_all_lines": accuracy_total,
+        "accuracy_over_evaluated_lines": accuracy_evaluated,
+        "hallucination_rate_over_all_lines": hallucination_rate_total,
+        "hallucination_rate_over_evaluated_lines": hallucination_rate_evaluated,
+        "ambiguous_responses": sorted(ambiguous_responses)
     }
 
     out = {
@@ -178,7 +186,7 @@ def evaluate_mcq_choice(path: Path):
 
 
 
-def evaluate_file(path: Path):
+def evaluate_file(path: Path, detailed_metrics: bool = False):
     """
     Evaluate a single JSONL file.
     Returns a dict: {
@@ -279,14 +287,22 @@ def evaluate_file(path: Path):
         "accuracy_over_all_lines": accuracy_over_all,
         "hallucination_rate_over_evaluated": hallucination_rate_evaluated,
         "hallucination_rate_over_all_lines": hallucination_rate_all,
+        "ambiguous_gold_examples": sorted(ambiguous_gold_values),
+        "ambiguous_pred_examples": sorted(ambiguous_pred_values),
+    } if detailed_metrics else {
+        "total_lines": total_lines,
+        "evaluated_pairs": evaluated,
+        "accuracy_over_evaluated": accuracy_over_evaluated,
+        "accuracy_over_all_lines": accuracy_over_all,
+        "hallucination_rate_over_evaluated": hallucination_rate_evaluated,
+        "hallucination_rate_over_all_lines": hallucination_rate_all,
+        "ambiguous_pred_examples": sorted(ambiguous_pred_values),
     }
     # simple console output: print summary as JSON (no fancy formatting)
     out = {
         "file": str(path),
         "title": title,
         "summary": summary,
-        "ambiguous_gold_examples": sorted(ambiguous_gold_values),
-        "ambiguous_pred_examples": sorted(ambiguous_pred_values),
     }
     print(json.dumps(out, ensure_ascii=False, indent=2))
 
@@ -298,6 +314,7 @@ def main():
     p = argparse.ArgumentParser(description="Evaluate Yes/No results JSONL (files or root dirs)")
     p.add_argument("paths", nargs="*", help="path(s) to JSONL results file(s) or root directories")
     p.add_argument("--out", "-o", default=str(OUT_REPORT), help="output report JSON path")
+    p.add_argument("--detailed_metrics", action="store_true", help="include detailed metrics in the output report")
     args = p.parse_args()
 
     paths = []
@@ -323,9 +340,10 @@ def main():
 
     for path in paths:
         if "Multichoice" in path.stem:
-            result = evaluate_mcq_choice(path)
+            #ToDo : handle MCQ lines where response is not a letter A-D and instead whole words.
+            result = evaluate_mcq_choice(path, detailed_metrics=args.detailed_metrics)
         elif "YesNo" in path.stem:
-            result = evaluate_file(path)
+            result = evaluate_file(path, detailed_metrics=args.detailed_metrics)
         else:
             #ToDo: VQA files?
             print(f"Skipping unrecognized file (not YesNo or Multichoice): {path}")
