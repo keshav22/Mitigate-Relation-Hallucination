@@ -1,3 +1,4 @@
+#%%
 import torch
 
 from transformers import LlamaTokenizer
@@ -18,7 +19,7 @@ layer_scores = torch.stack([layer_scores[i] for i in sorted(layer_scores)], dim=
 #%%
 # Remove batch_size
 assert layer_scores.shape[1] == 1, f"Expected dimension 1 to be batch_size, == 1, but got {layer_scores.shape[1]}"
-layer_scores = layer_scores.squeeze(1)
+layer_scores = layer_scores.squeeze(1) #output_scores: .squeeze(0) instead
 #%%
 layer_count = layer_scores.shape[0]
 
@@ -35,7 +36,7 @@ probs = top_k_layer_scores.values
 # Decode and print for each layer
 for layer_idx in reversed(range(tokens.shape[0])):
     print(f"\nLayer {layer_count-n_last_layers+1+layer_idx}:")
-    for token_idx in range(tokens.shape[1]):
+    for token_idx in range(tokens.shape[1]): #output_scores: only inner loop, and that over tokens.shape[0]
         token_id = tokens[layer_idx, token_idx].item()
         prob = probs[layer_idx, token_idx].item()
 
