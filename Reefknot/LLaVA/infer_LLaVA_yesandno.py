@@ -160,7 +160,7 @@ def eval_model(args):
                     output_scores=True,
                     apha=args.apha,
                     threshold=args.threshold,
-                    layer=args.layer,
+                    layer_lambda=args.layer_lambda,
                 ) 
                 output_ids = output_ids.sequences
             else:
@@ -214,7 +214,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_type", type=str, default=None)
     parser.add_argument("--apha", type=float, default=0.1)
     parser.add_argument("--threshold", type=float, default=0.9)
-    parser.add_argument("--layer", type=int, default=38)
+    parser.add_argument("--layer_lambda", type=int, default=2)
     parser.add_argument("--quantized", action='store_true', help="Use 4 bit quantized model", default=False)
     parser.add_argument("--enable_dtc", action='store_true', help="Enable DTC function", default=False)
     args = parser.parse_args()

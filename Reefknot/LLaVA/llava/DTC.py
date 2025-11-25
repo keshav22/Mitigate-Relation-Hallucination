@@ -21,7 +21,7 @@ from llava.model.language_model import llava_llama
 
 def _stash_dtc_to_config(self, kwargs: dict):
 
-    for k in ("apha", "threshold", "layer"):
+    for k in ("apha", "threshold", "layer_lambda"):
         if k in kwargs:
             setattr(self.generation_config, f"dtc_{k}", kwargs.pop(k))
 
@@ -56,7 +56,7 @@ def DTC_function():
         
         apha = getattr(self.generation_config, "dtc_apha", None)            
         threshold = getattr(self.generation_config, "dtc_threshold", None)
-        layer = getattr(self.generation_config, "dtc_layer", None)
+        dtc_layer_lambda = getattr(self.generation_config, "dtc_layer_lambda", None)
 
         
         logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
@@ -119,10 +119,10 @@ def DTC_function():
             final_layer_idx = len(outputs.hidden_states) - 1
 
            
-            if layer is None:
+            if dtc_layer_lambda is None:
                 base_layer_idx = final_layer_idx
             else:
-                base_layer_idx = max(0, min(int(layer), final_layer_idx))
+                base_layer_idx = max(0, final_layer_idx - int(dtc_layer_lambda))
 
             
             final_logits_step = self.lm_head(outputs.hidden_states[final_layer_idx])[:, -1, :]  # [bsz, vocab]
