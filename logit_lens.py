@@ -4,9 +4,9 @@ import torch
 from transformers import LlamaTokenizer
 tokenizer = LlamaTokenizer.from_pretrained("liuhaotian/llava-v1.5-7b") #requires sentencepiece
 
-n_last_layers = 4
 k = 5
-filepath = '/mnt/tmpfs/layer_scores_0.pt'
+filepath = '/mnt/tmpfs/output_scores_11.pt'
+is_output_score = True
 #%%
 layer_scores: torch.Tensor = torch.load(
     filepath,
@@ -15,16 +15,17 @@ layer_scores: torch.Tensor = torch.load(
 )
 #dict with layer_idx as key (32+1 layers). #TODO why +1
 #%%
-layer_scores = torch.stack([layer_scores[i] for i in sorted(layer_scores)], dim=0) #dict to tensor
-#%%
-# Remove batch_size
-assert layer_scores.shape[1] == 1, f"Expected dimension 1 to be batch_size, == 1, but got {layer_scores.shape[1]}"
-layer_scores = layer_scores.squeeze(1) #output_scores: .squeeze(0) instead
+if is_output_score:
+    # Remove batch_size
+    batch_size_dim=0
+    batch_size=1
+    assert layer_scores.shape[batch_size_dim] == batch_size, f"Expected dimension {batch_size_dim} to be batch_size, == {batch_size}, but got {layer_scores.shape[batch_size_dim]}"
+    layer_scores = layer_scores.squeeze(batch_size_dim)
 #%%
 layer_count = layer_scores.shape[0]
 
 # Last layers
-layer_scores_last_layers = layer_scores[-n_last_layers:, :]
+layer_scores_last_layers = layer_scores
 #%%
 # Top-k
 top_k_layer_scores = torch.topk(layer_scores_last_layers, k)
@@ -33,14 +34,20 @@ top_k_layer_scores = torch.topk(layer_scores_last_layers, k)
 tokens = top_k_layer_scores.indices
 probs = top_k_layer_scores.values
 #%%
-# Decode and print for each layer
-for layer_idx in reversed(range(tokens.shape[0])):
-    print(f"\nLayer {layer_count-n_last_layers+1+layer_idx}:")
-    for token_idx in range(tokens.shape[1]): #output_scores: only inner loop, and that over tokens.shape[0]
-        token_id = tokens[layer_idx, token_idx].item()
-        prob = probs[layer_idx, token_idx].item()
+def print_tokens_at_layer(tokens, probs, tokenizer):
+    for token_idx in range(tokens.shape[0]):
+        token_id = tokens[token_idx].item()
+        prob = probs[token_idx].item()
 
         # Decode the token
         decoded_token = tokenizer.decode([token_id])
 
         print(f"  ({decoded_token!r}, {prob:.4f})")
+
+# Decode and print for each layer
+if is_output_score:
+    print_tokens_at_layer(tokens, probs, tokenizer)
+else:
+    for layer_idx in reversed(range(tokens.shape[0])):
+        print(f"\nLayer {layer_idx-layer_count}:")
+        print_tokens_at_layer(tokens[layer_idx], probs[layer_idx], tokenizer)
