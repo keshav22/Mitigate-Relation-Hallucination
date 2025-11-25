@@ -1,6 +1,6 @@
 """
 Parse object bounding boxes from VG data
-expected input: objects.json from VG dataset
+expected input: objects.json from VG dataset (V1.4)
 output: json file with image_id as key and object bounding boxes as values
 """
 
