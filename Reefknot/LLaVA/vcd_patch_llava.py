@@ -151,7 +151,7 @@ if __name__ == "__main__":
     parser.add_argument("--chunk-idx", type=int, default=0)
     parser.add_argument("--temperature", type=float, default=0)
     parser.add_argument("--top_p", type=float, default=1)
-    parser.add_argument("--top_k", type=float, default=None)
+    parser.add_argument("--top_k", type=int, default=None)
     parser.add_argument("--max_new_tokens", type=int, default=2)
     parser.add_argument("--noise_step", type=int, default=500)
     parser.add_argument("--use_cd", action='store_true', default=False)
