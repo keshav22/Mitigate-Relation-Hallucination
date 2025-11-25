@@ -196,7 +196,7 @@ def eval_model(args):
                 
         mllm = args.model_path.split('/')[-1]
         outputs = tokenizer.batch_decode(
-            output_ids, skip_special_tokens=True
+            output_ids, skip_special_tokens=False
         )
         ans_file.write(
             json.dumps(
