@@ -33,7 +33,22 @@ from llava.DTC import DTC_function
 from PIL import Image
 import math
 
+def save_layer_scores(layer_scores, question_idx):
+    n_last_layers = 4
 
+    layer_scores = torch.stack([layer_scores[i] for i in sorted(layer_scores)], dim=0) #dict to tensor
+
+    # Remove batch_size
+    assert layer_scores.shape[1] == 1, f"Expected dimension 1 to be batch_size, == 1, but got {layer_scores.shape[1]}"
+    layer_scores = layer_scores.squeeze(1)
+
+    layer_count = layer_scores.shape[0]
+
+    # Last layers
+    layer_scores_last_layers = layer_scores[-n_last_layers:, :]
+
+    torch.save(layer_scores_last_layers, f"last_layer_scores_q{question_idx}.pt")
+    
 def get_path(image_id, image_folder):
     Image_path1 = os.path.join(image_folder, 'VG_100K')
     Image_path2 = os.path.join(image_folder, 'VG_100K_2')
@@ -162,7 +177,7 @@ def eval_model(args):
                     threshold=args.threshold,
                     layer=args.layer,
                 )
-                torch.save(layer_scores, f"layer_scores_{i}.pt")
+                save_layer_scores(layer_scores, i)
                 torch.save(output_ids.scores[0], f"output_scores_{i}.pt")
             else:
                 output_ids = model.generate(
