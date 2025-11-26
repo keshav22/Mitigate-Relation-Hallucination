@@ -2,6 +2,7 @@ import argparse
 import torch
 import random
 import numpy as np
+from transformers.trainer_utils import enable_full_determinism
 from transformers import set_seed
 
 import os
@@ -224,6 +225,7 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
 
+    enable_full_determinism(seed=args.seed)
     set_seed(args.seed)                
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
