@@ -161,6 +161,7 @@ def DTC_function():
                     base_logits_norm = base_logits_norm.masked_fill(mask, float("-inf"))
 
                 process_logits = (1.0 + float(apha)) * final_logits_norm - float(apha) * base_logits_norm
+                process_logits = torch.nan_to_num(process_logits, nan=-1e9)
                 next_token_logits = process_logits.to(final_logits_step.dtype)  # 还原到原 dtype（可能是 half）
             else:
                
