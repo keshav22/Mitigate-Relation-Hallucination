@@ -1,5 +1,7 @@
-model_name,num_params,quantization,mitigation_technique,result_path,apha,layer,threshold,temperature,conv_mode,max_new_tokens
-LLAVA,7B,4-bit,DTC,Experiment_Results/DTC_Quantized_7B,0.1,38,0.9,0,vicuna_v1,2
-LLAVA,7B,None,DTC,Experiment_Results/DTC_7B,0.1,38,0.9,0,vicuna_v1,2
-LLAVA,7B,None,DTC,Experiment_Results/DTC_7B_10T,0.1,38,0.9,0,vicuna_v1,5
-LLAVA,7B,None,None,Experiment_Results/7B_10T,0.1,38,0.9,0,vicuna_v1,5
+model_name,num_params,quantization,mitigation_technique,result_path,apha,layer_lambda,layer,threshold,temperature,conv_mode,max_new_tokens,seed,cd_alpha,cd_beta,top_p,top_k
+LLAVA,7B,4-bit,DTC,Experiment_Results/DTC_Quantized_7B,0.1,None,38,0.9,0,vicuna_v1,2,None,None,None,None,None
+LLAVA,7B,None,DTC,Experiment_Results/DTC_7B,0.1,None,38,0.9,0,vicuna_v1,2,None,None,None,None,None
+LLAVA,7B,None,DTC,Experiment_Results/DTC_7B_5T,0.1,None,38,0.9,0,vicuna_v1,5,None,None,None,None,None
+LLAVA,7B,None,None,Experiment_Results/7B_5T,0.1,None,38,0.9,0,vicuna_v1,5,None,None,None,None,None
+LLAVA,7B,None,DTC,Experiment_Results/DTC_7B_Corrected,0.1,2,None,0.9,0,vicuna_v1,2,42,None,None,None,None
+LLAVA,7B,None,VCD,Experiment_Results/VCD_LLaVA_5T,None,None,None,None,1,vicuna_v1,5,None,1,0.2,1,None
