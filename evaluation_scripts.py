@@ -23,6 +23,38 @@ NO_TERMS = {"no", "n"}
 WORD_YES_RE = re.compile(r"\byes\b", re.I)
 WORD_NO_RE = re.compile(r"\bno\b", re.I)
 
+RELATION_TYPE_LOOKUP = {}
+
+def create_relation_type_lookup(questions_path: dict):
+    """
+    Create a lookup dict mapping question text to relation type from a JSONL file.
+    Each line in the file should be a JSON object with 'question' and 'relation_type' fields.
+    """
+    lookup = {}
+    for key, path in questions_path.items():
+        assert key in ["mcq", "yesno", "vqa"], f"Invalid key in questions_path: {key}"
+        path = Path(path)
+        if not path.exists():
+            print(f"Questions file not found: {questions_path}")
+            continue
+        lookup[key] = {}
+        with path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                    question = obj.get("query_prompt")
+                    relation_type = obj.get("relation_type")
+                    if question and relation_type:
+                        assert relation_type in ["cognitive", "perception"], f"Invalid relation_type: {relation_type}"
+                        lookup[key][question] = relation_type
+                except Exception as e:
+                    print(f"Error parsing line in questions file: {e}")
+                    continue
+    return lookup
+
 def validate_mcq_choice(response, label):
     """
     Validate that both response and label are one of A/B/C/D and that the response
@@ -186,7 +218,7 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
 
 
 
-def evaluate_file(path: Path, detailed_metrics: bool = False):
+def evaluate_yesno(path: Path, detailed_metrics: bool = False):
     """
     Evaluate a single JSONL file.
     Returns a dict: {
@@ -224,6 +256,7 @@ def evaluate_file(path: Path, detailed_metrics: bool = False):
             title = path.stem
             label_raw = obj.get("label")
             response_raw = obj.get("response")
+            question = obj.get("query_prompt")
 
             gold = normalize_to_yesno(label_raw)
             pred = normalize_to_yesno(response_raw)
@@ -240,17 +273,23 @@ def evaluate_file(path: Path, detailed_metrics: bool = False):
                     counts["pred_missing_or_ambiguous_label_yes"] += 1
                 if gold == "no":
                     counts["pred_missing_or_ambiguous_label_no"] += 1
+            
 
             # determine correctness only if both present
             if gold is not None and pred is not None:
+                counts[f"evaluated_{RELATION_TYPE_LOOKUP['yesno'][question]}"] += 1
                 if pred == "yes" and gold == "yes":
                     counts["TP"] += 1
+                    counts["TP_" + RELATION_TYPE_LOOKUP['yesno'][question]] += 1
                 elif pred == "no" and gold == "no":
                     counts["TN"] += 1
+                    counts["TN_" + RELATION_TYPE_LOOKUP['yesno'][question]] += 1
                 elif pred == "no" and gold == "yes":
                     counts["FN"] += 1
+                    counts["FN_" + RELATION_TYPE_LOOKUP['yesno'][question]] += 1
                 elif pred == "yes" and gold == "no":
                     counts["FP"] += 1
+                    counts["FP_" + RELATION_TYPE_LOOKUP['yesno'][question]] += 1
 
 
     precision = counts.get("TP", 0) / (counts.get("TP", 0) + counts.get("FP", 0)) if (counts.get("TP", 0) + counts.get("FP", 0)) > 0 else None
@@ -265,6 +304,11 @@ def evaluate_file(path: Path, detailed_metrics: bool = False):
     parse_error = counts.get("parse_error", 0)
     evaluated = correct + incorrect
 
+    accuracy_by_type = {}
+    hallucination_rate_by_type = {}
+    for relation_type in ["cognitive", "perception"]:
+        accuracy_by_type[relation_type] = (counts.get(f"TP_{relation_type}", 0) + counts.get(f"TN_{relation_type}", 0)) / counts.get(f"evaluated_{relation_type}", 0) if counts.get(f"evaluated_{relation_type}", 0) > 0 else None
+        hallucination_rate_by_type[relation_type] = 1 - accuracy_by_type[relation_type] if accuracy_by_type[relation_type] is not None else None
     accuracy_over_evaluated = (correct / evaluated) if evaluated > 0 else None
     hallucination_rate_evaluated = 1 - accuracy_over_evaluated if accuracy_over_evaluated is not None else None
     accuracy_over_all = (correct / total_lines) if total_lines > 0 else None
@@ -285,6 +329,8 @@ def evaluate_file(path: Path, detailed_metrics: bool = False):
         "parse_error": parse_error,
         "accuracy_over_evaluated": accuracy_over_evaluated,
         "accuracy_over_all_lines": accuracy_over_all,
+        "accuracy_by_type": accuracy_by_type,
+        "hallucination_rate_by_type": hallucination_rate_by_type,
         "hallucination_rate_over_evaluated": hallucination_rate_evaluated,
         "hallucination_rate_over_all_lines": hallucination_rate_all,
         "ambiguous_gold_examples": sorted(ambiguous_gold_values),
@@ -318,6 +364,16 @@ def main():
     args = p.parse_args()
 
     paths = []
+
+    questions_path = {
+        "mcq": "Reefknot/Dataset/Multichoice.jsonl",
+        "yesno": "Reefknot/Dataset/YESNO.jsonl",
+        "vqa": "Reefknot/Dataset/VQA.jsonl"
+    }
+
+    global RELATION_TYPE_LOOKUP
+    RELATION_TYPE_LOOKUP = create_relation_type_lookup(questions_path)
+
     for rp in args.paths:
         pth = Path(rp)
         if pth.is_dir():
@@ -343,7 +399,7 @@ def main():
             #ToDo : handle MCQ lines where response is not a letter A-D and instead whole words.
             result = evaluate_mcq_choice(path, detailed_metrics=args.detailed_metrics)
         elif "YesNo" in path.stem:
-            result = evaluate_file(path, detailed_metrics=args.detailed_metrics)
+            result = evaluate_yesno(path, detailed_metrics=args.detailed_metrics)
         else:
             #ToDo: VQA files?
             print(f"Skipping unrecognized file (not YesNo or Multichoice): {path}")
