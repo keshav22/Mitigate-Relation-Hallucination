@@ -1,8 +1,9 @@
-model_name,num_params,quantization,mitigation_technique,result_path,apha,layer_lambda,layer,threshold,temperature,conv_mode,max_new_tokens,seed,cd_alpha,cd_beta,top_p,top_k
-LLAVA,7B,4-bit,DTC,Experiment_Results/DTC_Quantized_7B,0.1,None,38,0.9,0,vicuna_v1,2,None,None,None,None,None
-LLAVA,7B,None,DTC,Experiment_Results/DTC_7B,0.1,None,38,0.9,0,vicuna_v1,2,None,None,None,None,None
-LLAVA,7B,None,DTC,Experiment_Results/DTC_7B_5T,0.1,None,38,0.9,0,vicuna_v1,5,None,None,None,None,None
-LLAVA,7B,None,None,Experiment_Results/7B_5T,0.1,None,38,0.9,0,vicuna_v1,5,None,None,None,None,None
-LLAVA,7B,None,DTC,Experiment_Results/DTC_7B_Corrected,0.1,2,None,0.9,0,vicuna_v1,2,42,None,None,None,None
-LLAVA,7B,None,VCD,Experiment_Results/VCD_LLaVA_temperature_1,None,None,None,None,1,vicuna_v1,5,None,1,0.2,1,None
-LLAVA,7B,None,None,Experiment_Results/NO_DTC_seed42_15T_VQA,None,None,None,None,None,vicuna_v1,5,42,None,None,None,None
+model_name,num_params,quantization,mitigation_technique,result_path,apha,layer_lambda,layer,threshold,temperature,conv_mode,max_new_tokens,seed,cd_alpha,cd_beta,top_p,top_k,dtype
+LLAVA,7B,4-bit,DTC,Experiment_Results/DTC_Quantized_7B,0.1,None,38,0.9,0,vicuna_v1,2,None,None,None,None,None,
+LLAVA,7B,None,DTC,Experiment_Results/DTC_7B,0.1,None,38,0.9,0,vicuna_v1,2,None,None,None,None,None,
+LLAVA,7B,None,DTC,Experiment_Results/DTC_7B_5T,0.1,None,38,0.9,0,vicuna_v1,5,None,None,None,None,None,
+LLAVA,7B,None,None,Experiment_Results/7B_5T,0.1,None,38,0.9,0,vicuna_v1,5,None,None,None,None,None,
+LLAVA,7B,None,DTC,Experiment_Results/DTC_7B_Corrected,0.1,2,None,0.9,0,vicuna_v1,2,42,None,None,None,None,
+LLAVA,7B,None,VCD,Experiment_Results/VCD_LLaVA_temperature_1,None,None,None,None,1,vicuna_v1,5,None,1,0.2,1,None,
+LLAVA,7B,None,None,Experiment_Results/NO_DTC_seed42_15T_VQA,None,None,None,None,None,vicuna_v1,5,42,None,None,None,None,
+Qwen-VL-Chat,7B,None,None,Experiment_Results/Qwen-VL-Chat,None,None,None,None,None,None,64,None,None,None,None,None,fp16
