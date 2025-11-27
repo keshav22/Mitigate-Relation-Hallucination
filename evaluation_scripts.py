@@ -395,10 +395,10 @@ def main():
     per_file_reports = []
 
     for path in paths:
-        if "Multichoice" in path.stem:
+        if "multichoice" in path.stem.lower():
             #ToDo : handle MCQ lines where response is not a letter A-D and instead whole words.
             result = evaluate_mcq_choice(path, detailed_metrics=args.detailed_metrics)
-        elif "YesNo" in path.stem:
+        elif "yesno" in path.stem.lower():
             result = evaluate_yesno(path, detailed_metrics=args.detailed_metrics)
         else:
             #ToDo: VQA files?
