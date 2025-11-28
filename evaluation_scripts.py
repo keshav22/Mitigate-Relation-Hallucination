@@ -4,7 +4,14 @@ import re
 from pathlib import Path
 from collections import Counter
 import argparse
-
+import os
+import torch
+import torch.nn.functional as F
+from tqdm import tqdm
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+)
 """
 Modified evaluation_yes_no.py
 
@@ -355,12 +362,102 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
     
     return out
 
+def evaluate_vqa(answer_path: str, model_path: str):
+    
+    def are_equivalent(label, response, model, tokenizer, device):
+        
+        # label is groundtruth; response is the reply of VLM;
+        def check_implication(label, response):
+            inputs = tokenizer(label, response, return_tensors="pt").to(device)
+            outputs = model(**inputs)
+            logits = outputs.logits
+            largest_index = torch.argmax(F.softmax(logits, dim=1))
+            return largest_index.cpu().item()
+        
+        implication_1 = check_implication(label, response)
+        implication_2 = check_implication(response, label)
+        
+        assert (implication_1 in [0, 1, 2]) and (implication_2 in [0, 1, 2])
+        implications = [implication_1, implication_2]
+        semantically_equivalent = ( implications[0] == 2) and (implications[1] == 2)
+
+        return "yes" if semantically_equivalent else "no"
+    
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_path,
+        trust_remote_code=True
+    )
+
+    # ----- Load model -----
+    print("[INFO] Loading model")
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_path,
+        torch_dtype=torch.float16,
+        device_map="cuda",
+        low_cpu_mem_usage=True,
+        trust_remote_code=True,
+    ).eval()
+    
+    counts = {}
+    
+    answers = [
+        json.loads(q) for q in open(os.path.expanduser(answer_path), "r")
+    ]
+    
+    re_pattern = r'\<.*?\>'
+    device = next(model.parameters()).device
+    
+    for item in tqdm(answers):
+        
+        response = re.sub(re_pattern, '', item['response'].strip())
+        label = item['label']
+            
+        relation_type = item['relation_type']
+        
+        counts[f'{relation_type}'] = counts.get(f'{relation_type}', 0) + 1
+        
+        if response:
+            model_response = are_equivalent(label, response, model, tokenizer, device)
+            
+            if model_response == "yes":
+                counts["equivalent"] = counts.get('equivalent', 0) + 1
+                counts[f'{relation_type}_equivalent'] = counts.get(f'{relation_type}_equivalent', 0) + 1
+            else:
+                counts["different"] = counts.get('different', 0) + 1
+                counts[f'{relation_type}_different'] = counts.get(f'{relation_type}_different', 0) + 1
+        else:
+            counts["ambiguous"] = counts.get("ambiguous", 0) + 1
+            counts[f'{relation_type}_ambiguous'] = counts.get(f'{relation_type}_ambiguous', 0) + 1
+    
+    total = len(answers)
+    
+    summary = {
+        "hallucination_rate_over_all": float(counts['different']) / total,
+        "hallucination_rate_perception": float(counts['perception_different']) / counts["perception"],
+        "hallucination_rate_cognitive": float(counts['cognitive_different']) / counts["cognitive"]
+    }
+    
+    if "ambiguous" in counts and counts["ambiguous"] > 0:
+        summary["ambiguous"] = counts["ambiguous"]
+    
+    out = {
+        "file": str(answer_path),
+        "title": "Qwen_vqa",
+        "summary": summary,
+        "counts": counts,
+    }
+    
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+
+    return out
 
 def main():
     p = argparse.ArgumentParser(description="Evaluate Yes/No results JSONL (files or root dirs)")
     p.add_argument("paths", nargs="*", help="path(s) to JSONL results file(s) or root directories")
     p.add_argument("--out", "-o", default=str(OUT_REPORT), help="output report JSON path")
     p.add_argument("--detailed_metrics", action="store_true", help="include detailed metrics in the output report")
+    p.add_argument("--question_file", help="path to the question file")
+    p.add_argument("--model_path", help="path to the deberta or other eval model")
     args = p.parse_args()
 
     paths = []
@@ -395,18 +492,21 @@ def main():
     per_file_reports = []
 
     for path in paths:
-        if "multichoice" in path.stem.lower():
+        
+        stem = path.stem.lower()
+        
+        if "vqa" in stem:
+            result = evaluate_vqa(path, args.model_path)
+        elif "multichoice" in stem:
             #ToDo : handle MCQ lines where response is not a letter A-D and instead whole words.
             result = evaluate_mcq_choice(path, detailed_metrics=args.detailed_metrics)
-        elif "yesno" in path.stem.lower():
-            result = evaluate_yesno(path, detailed_metrics=args.detailed_metrics)
+        elif "yes" in stem or "no" in stem:
+            result = evaluate_file(path, detailed_metrics=args.detailed_metrics)
         else:
             #ToDo: VQA files?
-            print(f"Skipping unrecognized file (not YesNo or Multichoice): {path}")
+            print(f"Skipping unrecognized file (not YesNo or Multichoice or VQA): {path}")
             continue
         per_file_reports.append(result)
-        
-       
 
     combined_report = {
         "files": per_file_reports

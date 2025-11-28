@@ -1,0 +1,20 @@
+{
+  "files": [
+    {
+      "file": "C:\\Keshav\\Masters\\Technical University of Darmstadt\\Projects\\Mitigate Relation Hallucination\\Experiment_Results\\27-11-2025\\QWEN\\DTC_PATCH\\YESNO_Dtc_Result.jsonl",
+      "title": "YESNO_Dtc_Result",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9396,
+        "accuracy_over_evaluated": 0.6530438484461473,
+        "accuracy_over_all_lines": 0.6299794661190965,
+        "hallucination_rate_over_evaluated": 0.34695615155385273,
+        "hallucination_rate_over_all_lines": 0.3700205338809035,
+        "ambiguous_pred_examples": [
+          "There",
+          "un"
+        ]
+      }
+    }
+  ]
+}
