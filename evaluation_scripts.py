@@ -362,7 +362,7 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
     
     return out
 
-def evaluate_vqa(answer_path: str, model_path: str):
+def evaluate_vqa(answer_path: Path, model_path: str):
     
     def are_equivalent(label, response, model, tokenizer, device):
         
@@ -442,7 +442,7 @@ def evaluate_vqa(answer_path: str, model_path: str):
     
     out = {
         "file": str(answer_path),
-        "title": "Qwen_vqa",
+        "title": answer_path.stem,
         "summary": summary,
         "counts": counts,
     }
@@ -456,10 +456,9 @@ def main():
     p.add_argument("paths", nargs="*", help="path(s) to JSONL results file(s) or root directories")
     p.add_argument("--out", "-o", default=str(OUT_REPORT), help="output report JSON path")
     p.add_argument("--detailed_metrics", action="store_true", help="include detailed metrics in the output report")
-    p.add_argument("--question_file", help="path to the question file")
     p.add_argument("--model_path", help="path to the deberta or other eval model")
     args = p.parse_args()
-
+    
     paths = []
 
     questions_path = {
@@ -499,9 +498,9 @@ def main():
             result = evaluate_vqa(path, args.model_path)
         elif "multichoice" in stem:
             #ToDo : handle MCQ lines where response is not a letter A-D and instead whole words.
-            result = evaluate_mcq_choice(path, detailed_metrics=args.detailed_metrics)
+            result = evaluate_mcq_choice(path, args.detailed_metrics)
         elif "yes" in stem or "no" in stem:
-            result = evaluate_file(path, detailed_metrics=args.detailed_metrics)
+            result = evaluate_yesno(path, args.detailed_metrics)
         else:
             #ToDo: VQA files?
             print(f"Skipping unrecognized file (not YesNo or Multichoice or VQA): {path}")

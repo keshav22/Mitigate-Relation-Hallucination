@@ -10,6 +10,33 @@
         "accuracy_over_evaluated_lines": 0.7269485481406012,
         "hallucination_rate_over_all_lines": 0.3840287769784173,
         "hallucination_rate_over_evaluated_lines": 0.27305145185939883,
+        "macro_precision": 0.7471314608131772,
+        "macro_recall": 0.7223109273973315,
+        "macro_f1": 0.7271961906447513,
+        "per_class_mcq": {
+          "a": {
+            "precision": 0.6727748691099477,
+            "recall": 0.7133934767522554,
+            "f1": 0.6924890535533851
+          },
+          "b": {
+            "precision": 0.833029197080292,
+            "recall": 0.6630355846042121,
+            "f1": 0.7383744439951477
+          },
+          "c": {
+            "precision": 0.8273195876288659,
+            "recall": 0.6706128133704735,
+            "f1": 0.7407692307692306
+          },
+          "d": {
+            "precision": 0.6554021894336031,
+            "recall": 0.8422018348623853,
+            "f1": 0.737152034261242
+          }
+        },
+        "parse_errors_label": 0,
+        "parse_errors_response": 1061,
         "ambiguous_responses": [
           "<ref>arrow and left",
           "<ref>door</ref><box>",
@@ -229,10 +256,29 @@
       "summary": {
         "total_lines": 9740,
         "evaluated_pairs": 9407,
+        "precision": 0.6250384024577573,
+        "recall": 0.8468262226847034,
+        "f1": 0.7192222713212549,
+        "correct": 6230,
+        "incorrect": 3177,
+        "pred_missing_or_ambiguous_total": 333,
+        "pred_missing_or_ambiguous_label_yes": 65,
+        "pred_missing_or_ambiguous_label_no": 268,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
         "accuracy_over_evaluated": 0.6622727755926437,
         "accuracy_over_all_lines": 0.6396303901437371,
+        "accuracy_by_type": {
+          "cognitive": 0.6935148421251655,
+          "perception": 0.6221466731423021
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.30648515787483455,
+          "perception": 0.3778533268576979
+        },
         "hallucination_rate_over_evaluated": 0.33772722440735625,
         "hallucination_rate_over_all_lines": 0.3603696098562629,
+        "ambiguous_gold_examples": [],
         "ambiguous_pred_examples": [
           "There",
           "un"
