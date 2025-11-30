@@ -1,0 +1,147 @@
+{
+    "baseline_file": "./NO_DTC_PATCH/YESNO_Result.jsonl",
+    "dtc_file": "./DTC_PATCH/YESNO_Dtc_Result.jsonl",
+    "summary": {
+      "total_lines": 9740,
+      "baseline": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9407,
+        "correct": 6230,
+        "incorrect": 3177,
+        "TP": 4069,
+        "FP": 2441,
+        "FN": 736,
+        "TN": 2161,
+        "precision": 0.6250384024577573,
+        "recall": 0.8468262226847034,
+        "f1": 0.7192222713212549,
+        "pred_missing_or_ambiguous_total": 333,
+        "pred_missing_or_ambiguous_label_yes": 65,
+        "pred_missing_or_ambiguous_label_no": 268,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6622727755926437,
+        "accuracy_over_all_lines": 0.6396303901437371,
+        "hallucination_rate_over_evaluated": 0.33772722440735625,
+        "hallucination_rate_over_all_lines": 0.3603696098562629,
+        "per_relation_type": {
+          "cognitive": {
+            "TP": 2234,
+            "FP": 1151,
+            "FN": 437,
+            "TN": 1365,
+            "precision": 0.6599704579025111,
+            "recall": 0.8363908648446274,
+            "f1": 0.73778071334214,
+            "accuracy_over_evaluated": 0.6938500096394833,
+            "hallucination_rate_over_evaluated": 0.3061499903605167,
+            "evaluated_pairs": 5187
+          },
+          "perception": {
+            "TP": 1835,
+            "FP": 1290,
+            "FN": 299,
+            "TN": 796,
+            "precision": 0.5872,
+            "recall": 0.8598875351452671,
+            "f1": 0.697851302528998,
+            "accuracy_over_evaluated": 0.6234597156398104,
+            "hallucination_rate_over_evaluated": 0.3765402843601896,
+            "evaluated_pairs": 4220
+          }
+        }
+      },
+      "dtc": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9396,
+        "correct": 6136,
+        "incorrect": 3260,
+        "TP": 4130,
+        "FP": 2591,
+        "FN": 669,
+        "TN": 2006,
+        "precision": 0.6144918910876358,
+        "recall": 0.860595957491144,
+        "f1": 0.717013888888889,
+        "pred_missing_or_ambiguous_total": 344,
+        "pred_missing_or_ambiguous_label_yes": 71,
+        "pred_missing_or_ambiguous_label_no": 273,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6530438484461473,
+        "accuracy_over_all_lines": 0.6299794661190965,
+        "hallucination_rate_over_evaluated": 0.34695615155385273,
+        "hallucination_rate_over_all_lines": 0.3700205338809035,
+        "per_relation_type": {
+          "cognitive": {
+            "TP": 2282,
+            "FP": 1254,
+            "FN": 386,
+            "TN": 1260,
+            "precision": 0.6453619909502263,
+            "recall": 0.8553223388305847,
+            "f1": 0.7356544165054804,
+            "accuracy_over_evaluated": 0.6835198764955616,
+            "evaluated_pairs": 5182,
+            "hallucination_rate_over_evaluated": 0.31648012350443844
+          },
+          "perception": {
+            "TP": 1848,
+            "FP": 1337,
+            "FN": 283,
+            "TN": 746,
+            "precision": 0.5802197802197803,
+            "recall": 0.8671984983575786,
+            "f1": 0.6952595936794582,
+            "accuracy_over_evaluated": 0.6155671570953963,
+            "evaluated_pairs": 4214,
+            "hallucination_rate_over_evaluated": 0.38443284290460367
+          }
+        }
+      },
+      "pairwise": {
+        "pair_evaluated": 9395,
+        "both_correct": 6075,
+        "both_wrong": 3110,
+        "corrected_by_dtc": 61,
+        "corrupted_by_dtc": 149,
+        "net_improvement_count": -88,
+        "delta_accuracy_over_evaluated": -0.00922892714649648,
+        "delta_accuracy_over_all_lines": -0.009650924024640628,
+        "extra_lines_in_baseline": 0,
+        "extra_lines_in_dtc": 0,
+        "baseline_parse_error_lines": 0,
+        "dtc_parse_error_lines": 0,
+        "label_mismatch_lines": 0,
+        "per_relation_type": {
+          "cognitive": {
+            "pair_evaluated": 5181,
+            "both_correct": 3494,
+            "both_wrong": 1537,
+            "corrected_by_dtc": 48,
+            "corrupted_by_dtc": 102,
+            "net_improvement_count": -54,
+            "delta_accuracy_over_evaluated": -0.010330133143921727
+          },
+          "perception": {
+            "pair_evaluated": 4214,
+            "both_correct": 2581,
+            "both_wrong": 1573,
+            "corrected_by_dtc": 13,
+            "corrupted_by_dtc": 47,
+            "net_improvement_count": -34,
+            "delta_accuracy_over_evaluated": -0.007892558544414063
+          }
+        }
+      },
+      "ambiguous_gold_examples": [],
+      "ambiguous_pred_baseline_examples": [
+        "There",
+        "un"
+      ],
+      "ambiguous_pred_dtc_examples": [
+        "There",
+        "un"
+      ]
+    }
+  }

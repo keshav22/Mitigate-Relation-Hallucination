@@ -8,6 +8,9 @@ LLAVA,7B,None,VCD,Experiment_Results/VCD_LLaVA_temperature_1,None,None,None,None
 LLAVA,7B,None,None,Experiment_Results/NO_DTC_seed42_15T_VQA,None,None,None,None,0,vicuna_v1,5,42,None,None,None,None,
 LLAVA,7B,None,None,Experiment_Results/NO_DTC_seed42_20T_VQA,None,None,None,None,0,vicuna_v1,20,42,None,None,None,None,
 LLAVA,13B,None,None,Experiment_Results/13B_noDTC,None,None,None,None,0,vicuna_v1,None,None,None,None,None,None,
+LLAVA,13B,None,DTC,Experiment_Results/DTC_13B,None,None,None,None,0,vicuna_v1,2,42,None,None,None,None,
 
 Qwen-VL-Chat,7B,None,None,Experiment_Results/Qwen-VL-Chat,None,None,None,None,0,None,64,None,None,None,None,None,bf16
+
+
 
