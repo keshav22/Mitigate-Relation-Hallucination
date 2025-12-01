@@ -108,11 +108,6 @@
         "net_improvement_count": -88,
         "delta_accuracy_over_evaluated": -0.00922892714649648,
         "delta_accuracy_over_all_lines": -0.009650924024640628,
-        "extra_lines_in_baseline": 0,
-        "extra_lines_in_dtc": 0,
-        "baseline_parse_error_lines": 0,
-        "dtc_parse_error_lines": 0,
-        "label_mismatch_lines": 0,
         "per_relation_type": {
           "cognitive": {
             "pair_evaluated": 5181,
