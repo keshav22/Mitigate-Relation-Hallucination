@@ -30,37 +30,6 @@ NO_TERMS = {"no", "n"}
 WORD_YES_RE = re.compile(r"\byes\b", re.I)
 WORD_NO_RE = re.compile(r"\bno\b", re.I)
 
-RELATION_TYPE_LOOKUP = {}
-
-def create_relation_type_lookup(questions_path: dict):
-    """
-    Create a lookup dict mapping question text to relation type from a JSONL file.
-    Each line in the file should be a JSON object with 'question' and 'relation_type' fields.
-    """
-    lookup = {}
-    for key, path in questions_path.items():
-        assert key in ["mcq", "yesno", "vqa"], f"Invalid key in questions_path: {key}"
-        path = Path(path)
-        if not path.exists():
-            print(f"Questions file not found: {questions_path}")
-            continue
-        lookup[key] = {}
-        with path.open("r", encoding="utf-8") as fh:
-            for line in fh:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    obj = json.loads(line)
-                    question = obj.get("query_prompt")
-                    relation_type = obj.get("relation_type")
-                    if question and relation_type:
-                        assert relation_type in ["cognitive", "perception"], f"Invalid relation_type: {relation_type}"
-                        lookup[key][question] = relation_type
-                except Exception as e:
-                    print(f"Error parsing line in questions file: {e}")
-                    continue
-    return lookup
 
 def validate_mcq_choice(response, label):
     """
@@ -144,14 +113,16 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
                     counts["mcq_parse_error_response"] += 1
             else:
                 counts["evaluated_mcq"] += 1
-
+                relation_type = obj.get("relation_type", "unknown")
                 # both parsed as MCQ choices; count per-class TP/FP
                 # true positive when predicted == label
                 if resp_choice == label_choice:
                     counts[f"mcq_TP_{resp_choice}"] += 1
+                    counts[f"mcq_correct_{relation_type}"] += 1
                 else:
                     counts[f"mcq_FP_{resp_choice}"] += 1
                     counts[f"mcq_FN_{label_choice}"] += 1
+                    counts[f"mcq_wrong_{relation_type}"] += 1
 
 
     # per-class MCQ precision (for choices a,b,c,d)
@@ -180,7 +151,15 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
             "recall": recall,
             "f1": f1_ch
         }
+    accuracy_by_type = {}
+    hallucination_rate_by_type = {}
+    # calculate accuracy and hallucination rate by relation type    
+
+    for relation_type in ["cognitive", "perception", "unknown"]:
+        accuracy_by_type[relation_type] = counts.get(f"mcq_correct_{relation_type}", 0) / counts.get(f"evaluated_{relation_type}", 0) if counts.get(f"evaluated_{relation_type}", 0) > 0 else None
+        hallucination_rate_by_type[relation_type] = 1 - accuracy_by_type[relation_type] if accuracy_by_type[relation_type] is not None else None
     
+
     macro_precision = sum(prec_vals) / len(prec_vals) if prec_vals else None
     macro_recall = sum(rec_vals) / len(rec_vals) if rec_vals else None
     macro_f1 = sum(f1_vals) / len(f1_vals) if f1_vals else None
@@ -199,7 +178,9 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
         "macro_precision": macro_precision,
         "macro_recall": macro_recall,
         "macro_f1": macro_f1,
-        "per_class_mcq": per_class_mcq,        
+        "per_class_mcq": per_class_mcq,  
+        "accuracy_by_type": accuracy_by_type,
+        "hallucination_rate_by_type": hallucination_rate_by_type,      
         "parse_errors_label": counts.get("mcq_parse_error_label", 0),
         "parse_errors_response": counts.get("mcq_parse_error_response", 0),
         "ambiguous_responses": sorted(ambiguous_responses),
@@ -208,6 +189,8 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
         "evaluated_lines": counts.get("evaluated_mcq", 0),
         "accuracy_over_all_lines": accuracy_total,
         "accuracy_over_evaluated_lines": accuracy_evaluated,
+        "accuracy_by_type": accuracy_by_type,
+        "hallucination_rate_by_type": hallucination_rate_by_type,
         "hallucination_rate_over_all_lines": hallucination_rate_total,
         "hallucination_rate_over_evaluated_lines": hallucination_rate_evaluated,
         "ambiguous_responses": sorted(ambiguous_responses)
@@ -283,20 +266,21 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
             
 
             # determine correctness only if both present
+            relation_type = obj.get("relation_type", "unknown")
             if gold is not None and pred is not None:
-                counts[f"evaluated_{RELATION_TYPE_LOOKUP['yesno'][question]}"] += 1
+                counts[f"evaluated_{relation_type}"] += 1
                 if pred == "yes" and gold == "yes":
                     counts["TP"] += 1
-                    counts["TP_" + RELATION_TYPE_LOOKUP['yesno'][question]] += 1
+                    counts["TP_" + relation_type] += 1
                 elif pred == "no" and gold == "no":
                     counts["TN"] += 1
-                    counts["TN_" + RELATION_TYPE_LOOKUP['yesno'][question]] += 1
+                    counts["TN_" + relation_type] += 1
                 elif pred == "no" and gold == "yes":
                     counts["FN"] += 1
-                    counts["FN_" + RELATION_TYPE_LOOKUP['yesno'][question]] += 1
+                    counts["FN_" + relation_type] += 1
                 elif pred == "yes" and gold == "no":
                     counts["FP"] += 1
-                    counts["FP_" + RELATION_TYPE_LOOKUP['yesno'][question]] += 1
+                    counts["FP_" + relation_type] += 1
 
 
     precision = counts.get("TP", 0) / (counts.get("TP", 0) + counts.get("FP", 0)) if (counts.get("TP", 0) + counts.get("FP", 0)) > 0 else None
@@ -313,7 +297,7 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
 
     accuracy_by_type = {}
     hallucination_rate_by_type = {}
-    for relation_type in ["cognitive", "perception"]:
+    for relation_type in ["cognitive", "perception", "unknown"]:
         accuracy_by_type[relation_type] = (counts.get(f"TP_{relation_type}", 0) + counts.get(f"TN_{relation_type}", 0)) / counts.get(f"evaluated_{relation_type}", 0) if counts.get(f"evaluated_{relation_type}", 0) > 0 else None
         hallucination_rate_by_type[relation_type] = 1 - accuracy_by_type[relation_type] if accuracy_by_type[relation_type] is not None else None
     accuracy_over_evaluated = (correct / evaluated) if evaluated > 0 else None
@@ -466,9 +450,6 @@ def main():
         "yesno": "Reefknot/Dataset/YESNO.jsonl",
         "vqa": "Reefknot/Dataset/VQA.jsonl"
     }
-
-    global RELATION_TYPE_LOOKUP
-    RELATION_TYPE_LOOKUP = create_relation_type_lookup(questions_path)
 
     for rp in args.paths:
         pth = Path(rp)
