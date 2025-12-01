@@ -13,11 +13,8 @@ from transformers import (
     AutoModelForSequenceClassification,
 )
 """
-Modified evaluation_yes_no.py
-
-- Produces only summary information in the output report (no line-by-line items).
-- Accepts one or more JSONL result files (positional args).
-- If no files provided, uses DEFAULT_PATH.
+IMPORTANT:
+Assumes JSON files are named with 'yesno' or 'vqa' or 'multichoice' in the filename to identify type.
 """
 
 # configurable defaults
@@ -483,7 +480,6 @@ def main():
         elif "yes" in stem or "no" in stem:
             result = evaluate_yesno(path, args.detailed_metrics)
         else:
-            #ToDo: VQA files?
             print(f"Skipping unrecognized file (not YesNo or Multichoice or VQA): {path}")
             continue
         per_file_reports.append(result)
