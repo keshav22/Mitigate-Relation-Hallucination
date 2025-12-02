@@ -1,5 +1,10 @@
 import argparse
 import torch
+import random
+import numpy as np
+from transformers.trainer_utils import enable_full_determinism
+from transformers import set_seed
+
 import os
 import json
 from tqdm import tqdm
@@ -32,7 +37,6 @@ from llava.mm_utils import (
 from llava.DTC import DTC_function
 from PIL import Image
 import math
-
 
 def get_path(image_id, image_folder):
     Image_path1 = os.path.join(image_folder, 'VG_100K')
@@ -155,13 +159,14 @@ def eval_model(args):
                     temperature=args.temperature,
                     top_p=args.top_p,
                     num_beams=args.num_beams,
-                    max_new_tokens=2,
+                    max_new_tokens=args.max_new_tokens,
                     use_cache=True,
                     output_scores=True,
                     apha=args.apha,
                     threshold=args.threshold,
-                    layer=args.layer,
+                    layer_lambda=args.layer_lambda,
                 ) 
+                output_ids = output_ids.sequences
             else:
                 output_ids = model.generate(
                 input_ids,
@@ -171,13 +176,14 @@ def eval_model(args):
                 temperature=args.temperature,
                 top_p=args.top_p,
                 num_beams=args.num_beams,
-                max_new_tokens=2,
+                max_new_tokens=args.max_new_tokens,
                 use_cache=True,
                 output_scores=True
             )
+                
         mllm = args.model_path.split('/')[-1]
         outputs = tokenizer.batch_decode(
-            output_ids.sequences, skip_special_tokens=True
+            output_ids, skip_special_tokens=True
         )[0].strip()
         ans_file.write(
             json.dumps(
@@ -208,12 +214,25 @@ if __name__ == "__main__":
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--top_p", type=float, default=None)
     parser.add_argument("--num_beams", type=int, default=1)
+    parser.add_argument("--max_new_tokens", type=int, default=2)
     parser.add_argument("--model_type", type=str, default=None)
     parser.add_argument("--apha", type=float, default=0.1)
     parser.add_argument("--threshold", type=float, default=0.9)
-    parser.add_argument("--layer", type=int, default=38)
+    parser.add_argument("--layer_lambda", type=int, default=2)
     parser.add_argument("--quantized", action='store_true', help="Use 4 bit quantized model", default=False)
     parser.add_argument("--enable_dtc", action='store_true', help="Enable DTC function", default=False)
+    parser.add_argument("--seed", type=int, default=42)
+    
     args = parser.parse_args()
+
+    enable_full_determinism(seed=args.seed)
+    set_seed(args.seed)                
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+    np.random.seed(args.seed)
+    random.seed(args.seed)
+
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
     eval_model(args)
