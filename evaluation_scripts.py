@@ -111,6 +111,7 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
             else:
                 counts["evaluated_mcq"] += 1
                 relation_type = obj.get("relation_type", "unknown")
+                counts[f"evaluated_{relation_type}"] += 1
                 # both parsed as MCQ choices; count per-class TP/FP
                 # true positive when predicted == label
                 if resp_choice == label_choice:
@@ -120,8 +121,6 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
                     counts[f"mcq_FP_{resp_choice}"] += 1
                     counts[f"mcq_FN_{label_choice}"] += 1
                     counts[f"mcq_wrong_{relation_type}"] += 1
-
-
     # per-class MCQ precision (for choices a,b,c,d)
     per_class_mcq = {}
     prec_vals = []
