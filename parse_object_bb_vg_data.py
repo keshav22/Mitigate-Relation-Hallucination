@@ -27,11 +27,12 @@ if __name__ == "__main__":
     for image in objs:
         parsed_objects[image['image_id']] = {}
         for obj in image['objects']:
-            if 'names' in obj and (len(obj['names']) > 1 or len(obj['names']) == 0):
-                print(f"Image ID {image['image_id']} has invalid object name: {obj['names']}")
-                import pdb; pdb.set_trace()                   
+            if 'names' in obj and len(obj['names']) > 0 and type(obj['names']) == list:
+                    for name in obj['names']:
+                        parsed_objects[image['image_id']][name] = {"x":obj["x"], "y":obj["y"], "w":obj["w"], "h":obj["h"]}
             else:
-                parsed_objects[image['image_id']][obj['names'][0]] = {"x":obj["x"], "y":obj["y"], "w":obj["w"], "h":obj["h"]}   
+                print(f"objects: {obj['names']} not processed.")
+                  
     
     
     with open( args.output, "w", encoding="utf-8") as fh:

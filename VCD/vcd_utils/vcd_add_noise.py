@@ -1,4 +1,8 @@
-import torch
+import json
+from typing import Counter
+import torch 
+
+OBJECTS = { }
 
 def add_diffusion_noise(image_tensor, noise_step):
     num_steps = 1000  # Number of diffusion steps
@@ -48,3 +52,50 @@ def add_noise_patch(image_tensor, noise_step, objects, image_id):
     image_tensor[:, selected_bb["y"]:selected_bb["h"], selected_bb["x"]:selected_bb["w"]] = noisy_patch
     return image_tensor
     
+def get_objects_in_question(question, image_id):
+    # find objects mentioned in the question
+    question = question.replace("this photo? Please answer yes or no", "").strip()
+    if image_id not in OBJECTS:
+        return []
+    matched = [obj for obj in OBJECTS[image_id].keys() if obj in question and obj not in ["the", "this"] ]
+    # remove 'photo' from matched if it's mentioned only once in the question (case-insensitive)
+    q_lower = question.lower()
+    if q_lower.count("photo") == 1:
+        matched = [m for m in matched if m.lower() != "photo"]
+    # keep only the largest string when one matched object is a substring of another
+    matched.sort(key=len, reverse=True)
+    selected = []
+    for obj in matched:
+        if not any(obj in s for s in selected):
+            selected.append(obj)
+    # if len(selected) ==0 :
+    #     print(f"Image ID: {image_id}, Question: {question}, Objects: {OBJECTS[image_id].keys()}")
+    return selected
+
+if __name__ == "__main__":
+    
+    with open("Reefknot/Dataset/objects.json","r") as fp:
+        OBJECTS=json.load(fp)
+
+    yes_no_questions = "Reefknot/Dataset/YESNO.jsonl"
+    with open(yes_no_questions,"r") as fp:
+        lines = fp.readlines()
+        count = Counter()
+        zero_obj = []
+        for line in lines:
+            data = json.loads(line)
+            image_id = data["image_id"]
+            question = data["query_prompt"]
+            objects_in_question = get_objects_in_question(question, image_id)
+            if len(objects_in_question) != 2:
+                if len(objects_in_question) == 1:
+                    count["one_obj_count"] += 1
+                if len(objects_in_question) ==0:
+                    count["zero_obj_count"] += 1
+                    zero_obj.append((image_id, question))
+                count["wrong_obj_count"] += 1
+                # print(f"Image ID: {image_id}, Question: {question}, Objects: {objects_in_question}")
+        print(f"Total wrong object count: {count['wrong_obj_count']}")
+        print(f"Total zero object count: {count['zero_obj_count']}")
+        print(f"Total one object count: {count['one_obj_count']}")
+        print(f"Zero object cases: {zero_obj}")
