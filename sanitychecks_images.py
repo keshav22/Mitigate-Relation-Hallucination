@@ -1,8 +1,26 @@
 import json
-import sys
+import sys,os
 from pathlib import Path
 from PIL import Image
 import argparse
+
+
+def get_path(image_id, image_folder):
+    Image_path1 = os.path.join(image_folder, 'VG_100K')
+    Image_path2 = os.path.join(image_folder, 'VG_100K_2')
+    # if image is not None:
+    image_id = str(image_id)
+    if image_id.endswith('.jpg'):
+        image_id = image_id.split('.')[0]
+    if os.path.exists(os.path.join(Image_path1, image_id+'.jpg')):
+        # print('Find image in VG100K(small one!) image path is:',os.path.join(Image_path1, image_id+'.jpg'))
+        return os.path.join(Image_path1, image_id+'.jpg')
+    elif os.path.exists(os.path.join(Image_path2, image_id+'.jpg')):
+        return os.path.join(Image_path2, image_id+'.jpg')
+    else:
+        print('Cannot find image {}.jpg'.format(image_id))
+        return None
+    
 
 def load_bounding_boxes(json_file):
     """Load bounding box data from JSON file."""
@@ -25,7 +43,8 @@ def sanity_check_bboxes(image_dir, json_file):
     
     for image_id, objects in data.items():
         # Find matching image file
-        image_files = list(image_dir.glob(f"{image_id}.*"))
+        image_files = get_paths(image_dir, image_id)
+        
         
         if not image_files:
             issues.append(f"Image not found for ID: {image_id}")
