@@ -1,5 +1,5 @@
 import json
-from typing import Counter
+from collections import Counter
 import torch 
 
 OBJECTS = { }
@@ -55,9 +55,12 @@ def add_noise_patch(image_tensor, noise_step, objects, image_id):
 def get_objects_in_question(question, image_id):
     # find objects mentioned in the question
     question = question.replace("this photo? Please answer yes or no", "").strip()
+
+
+
     if image_id not in OBJECTS:
         return []
-    matched = [obj for obj in OBJECTS[image_id].keys() if obj in question and obj not in ["the", "this"] ]
+    matched = [obj for obj in OBJECTS[image_id].keys() if " "+obj+" " in question and obj not in ["the", "this"] ]
     # remove 'photo' from matched if it's mentioned only once in the question (case-insensitive)
     q_lower = question.lower()
     if q_lower.count("photo") == 1:
@@ -73,7 +76,7 @@ def get_objects_in_question(question, image_id):
     return selected
 
 if __name__ == "__main__":
-    
+    open("imageid_qn_selected_bb.txt", "w").close()
     with open("Reefknot/Dataset/objects.json","r") as fp:
         OBJECTS=json.load(fp)
 
@@ -82,20 +85,30 @@ if __name__ == "__main__":
         lines = fp.readlines()
         count = Counter()
         zero_obj = []
+        image_qnobject_map = {}
         for line in lines:
             data = json.loads(line)
             image_id = data["image_id"]
+            if image_id not in image_qnobject_map.keys():
+                image_qnobject_map[image_id] = []
             question = data["query_prompt"]
             objects_in_question = get_objects_in_question(question, image_id)
+            with open('imageid_qn_selected_bb.txt', 'a') as f:
+                f.write(f"Image ID: {image_id}, Question: {question}, Objects: {objects_in_question}\n")
+            for obj in objects_in_question:
+                if obj not in image_qnobject_map[image_id]:
+                    image_qnobject_map[image_id].append(obj)
             if len(objects_in_question) != 2:
                 if len(objects_in_question) == 1:
                     count["one_obj_count"] += 1
-                if len(objects_in_question) ==0:
+                if len(objects_in_question) == 0:
                     count["zero_obj_count"] += 1
                     zero_obj.append((image_id, question))
                 count["wrong_obj_count"] += 1
                 # print(f"Image ID: {image_id}, Question: {question}, Objects: {objects_in_question}")
+        with open("image_qnobject_map.json","w") as fp:
+            json.dump(image_qnobject_map,fp)
         print(f"Total wrong object count: {count['wrong_obj_count']}")
         print(f"Total zero object count: {count['zero_obj_count']}")
         print(f"Total one object count: {count['one_obj_count']}")
-        print(f"Zero object cases: {zero_obj}")
+        # print(f"Zero object cases: {zero_obj}")
