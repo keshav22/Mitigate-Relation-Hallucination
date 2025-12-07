@@ -24,7 +24,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise
+from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch
 from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling
 
 
@@ -73,7 +73,6 @@ def eval_model(args):
     ans_file = open(answers_file, "w")
     for line in tqdm(questions):
         image_file = line["image_id"] + ".jpg"
-        # image_path = os.path.join(args.image_folder, image_file)
         image_path = get_path(line["image_id"], args.image_folder)
         if not os.path.exists(image_path):
             print(f"Image file {image_file} not found, skipping.")
@@ -97,7 +96,15 @@ def eval_model(args):
         image = Image.open(image_path)
         image_tensor = image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
         
-        if args.use_cd:
+        if args.cd_mode == "patched_cd":
+            img_id = line["image_id"]
+            if img_id not in image_qn_obj_map.keys():
+                raise RuntimeError(f"Image ID {img_id} not found in image to object mapping, skipping")
+            if len(image_qn_obj_map[img_id][qs]) ==0:
+                raise RuntimeError(f"No objects found for image ID {img_id}, cannot add noise")
+            objects_in_question = image_qn_obj_map[img_id][qs][0]
+            image_tensor_cd = add_noise_patch(image_tensor, args.noise_step, bounding_boxes[img_id][objects_in_question[0]])
+        elif args.cd_mode == "full_cd":
             image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
         else:
             image_tensor_cd = None      
@@ -147,6 +154,8 @@ if __name__ == "__main__":
     parser.add_argument("--image_folder", type=str, default="")
     parser.add_argument("--question-file", type=str, default="tables/question.jsonl")
     parser.add_argument("--answers-file", type=str, default="answer.jsonl")
+    parser.add_argument("--bounding_boxes", type=str, default="")
+    parser.add_argument("--image_qn_obj_map", type=str, default="")
     parser.add_argument("--conv-mode", type=str, default="")
     parser.add_argument("--num-chunks", type=int, default=1)
     parser.add_argument("--chunk-idx", type=int, default=0)
@@ -155,12 +164,28 @@ if __name__ == "__main__":
     parser.add_argument("--top_k", type=int, default=None)
     parser.add_argument("--max_new_tokens", type=int, default=2)
     parser.add_argument("--noise_step", type=int, default=500)
-    parser.add_argument("--use_cd", action='store_true', default=False)
+    parser.add_argument("--cd_mode", type=str, default="no_cd")
     parser.add_argument("--cd_alpha", type=float, default=1)
     parser.add_argument("--cd_beta", type=float, default=0.2)
     parser.add_argument("--quantized", action='store_true', help="Use 4 bit quantized model", default=False)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
+
+    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd"]:
+        raise RuntimeError(f"Invalid cd_mode {args.cd_mode}, should be one of patched_cd, full_cd, no_cd")
+    elif args.cd_mode == "patched_cd":
+        
+        global bounding_boxes
+        global image_qn_obj_map
+
+        with open(args.bounding_boxes, 'r') as f:
+            bounding_boxes = json.load(f)
+        with open(args.image_qn_obj_map, 'r') as f:
+            image_qn_obj_map = json.load(f)
+
+    print(f"Using cd_mode: {args.cd_mode}\n")
+
+
     enable_full_determinism(seed=args.seed)
     set_seed(args.seed)                
     torch.manual_seed(args.seed)
