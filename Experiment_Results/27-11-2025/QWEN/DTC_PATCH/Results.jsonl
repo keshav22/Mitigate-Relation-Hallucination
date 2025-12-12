@@ -1,0 +1,39 @@
+{
+  "files": [
+    {
+      "file": "C:\\Keshav\\Masters\\Technical University of Darmstadt\\Projects\\Mitigate Relation Hallucination\\Experiment_Results\\27-11-2025\\QWEN\\DTC_PATCH\\YESNO_Dtc_Result.jsonl",
+      "title": "YESNO_Dtc_Result",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9396,
+        "precision": 0.6144918910876358,
+        "recall": 0.860595957491144,
+        "f1": 0.717013888888889,
+        "correct": 6136,
+        "incorrect": 3260,
+        "pred_missing_or_ambiguous_total": 344,
+        "pred_missing_or_ambiguous_label_yes": 71,
+        "pred_missing_or_ambiguous_label_no": 273,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6530438484461473,
+        "accuracy_over_all_lines": 0.6299794661190965,
+        "accuracy_by_type": {
+          "cognitive": 0.6833238690138179,
+          "perception": 0.6141502552881108
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.3166761309861821,
+          "perception": 0.38584974471188915
+        },
+        "hallucination_rate_over_evaluated": 0.34695615155385273,
+        "hallucination_rate_over_all_lines": 0.3700205338809035,
+        "ambiguous_gold_examples": [],
+        "ambiguous_pred_examples": [
+          "There",
+          "un"
+        ]
+      }
+    }
+  ]
+}

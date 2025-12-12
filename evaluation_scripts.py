@@ -4,13 +4,17 @@ import re
 from pathlib import Path
 from collections import Counter
 import argparse
-
+import os
+import torch
+import torch.nn.functional as F
+from tqdm import tqdm
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+)
 """
-Modified evaluation_yes_no.py
-
-- Produces only summary information in the output report (no line-by-line items).
-- Accepts one or more JSONL result files (positional args).
-- If no files provided, uses DEFAULT_PATH.
+IMPORTANT:
+Assumes JSON files are named with 'yesno' or 'vqa' or 'multichoice' in the filename to identify type.
 """
 
 # configurable defaults
@@ -22,6 +26,7 @@ NO_TERMS = {"no", "n"}
 
 WORD_YES_RE = re.compile(r"\byes\b", re.I)
 WORD_NO_RE = re.compile(r"\bno\b", re.I)
+
 
 def validate_mcq_choice(response, label):
     """
@@ -105,16 +110,17 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
                     counts["mcq_parse_error_response"] += 1
             else:
                 counts["evaluated_mcq"] += 1
-
+                relation_type = obj.get("relation_type", "unknown")
+                counts[f"evaluated_{relation_type}"] += 1
                 # both parsed as MCQ choices; count per-class TP/FP
                 # true positive when predicted == label
                 if resp_choice == label_choice:
                     counts[f"mcq_TP_{resp_choice}"] += 1
+                    counts[f"mcq_correct_{relation_type}"] += 1
                 else:
                     counts[f"mcq_FP_{resp_choice}"] += 1
                     counts[f"mcq_FN_{label_choice}"] += 1
-
-
+                    counts[f"mcq_wrong_{relation_type}"] += 1
     # per-class MCQ precision (for choices a,b,c,d)
     per_class_mcq = {}
     prec_vals = []
@@ -141,7 +147,15 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
             "recall": recall,
             "f1": f1_ch
         }
+    accuracy_by_type = {}
+    hallucination_rate_by_type = {}
+    # calculate accuracy and hallucination rate by relation type    
+
+    for relation_type in ["cognitive", "perception", "unknown"]:
+        accuracy_by_type[relation_type] = counts.get(f"mcq_correct_{relation_type}", 0) / counts.get(f"evaluated_{relation_type}", 0) if counts.get(f"evaluated_{relation_type}", 0) > 0 else None
+        hallucination_rate_by_type[relation_type] = 1 - accuracy_by_type[relation_type] if accuracy_by_type[relation_type] is not None else None
     
+
     macro_precision = sum(prec_vals) / len(prec_vals) if prec_vals else None
     macro_recall = sum(rec_vals) / len(rec_vals) if rec_vals else None
     macro_f1 = sum(f1_vals) / len(f1_vals) if f1_vals else None
@@ -160,7 +174,9 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
         "macro_precision": macro_precision,
         "macro_recall": macro_recall,
         "macro_f1": macro_f1,
-        "per_class_mcq": per_class_mcq,        
+        "per_class_mcq": per_class_mcq,  
+        "accuracy_by_type": accuracy_by_type,
+        "hallucination_rate_by_type": hallucination_rate_by_type,      
         "parse_errors_label": counts.get("mcq_parse_error_label", 0),
         "parse_errors_response": counts.get("mcq_parse_error_response", 0),
         "ambiguous_responses": sorted(ambiguous_responses),
@@ -169,6 +185,8 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
         "evaluated_lines": counts.get("evaluated_mcq", 0),
         "accuracy_over_all_lines": accuracy_total,
         "accuracy_over_evaluated_lines": accuracy_evaluated,
+        "accuracy_by_type": accuracy_by_type,
+        "hallucination_rate_by_type": hallucination_rate_by_type,
         "hallucination_rate_over_all_lines": hallucination_rate_total,
         "hallucination_rate_over_evaluated_lines": hallucination_rate_evaluated,
         "ambiguous_responses": sorted(ambiguous_responses)
@@ -186,7 +204,7 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
 
 
 
-def evaluate_file(path: Path, detailed_metrics: bool = False):
+def evaluate_yesno(path: Path, detailed_metrics: bool = False):
     """
     Evaluate a single JSONL file.
     Returns a dict: {
@@ -224,6 +242,7 @@ def evaluate_file(path: Path, detailed_metrics: bool = False):
             title = path.stem
             label_raw = obj.get("label")
             response_raw = obj.get("response")
+            question = obj.get("query_prompt")
 
             gold = normalize_to_yesno(label_raw)
             pred = normalize_to_yesno(response_raw)
@@ -240,17 +259,24 @@ def evaluate_file(path: Path, detailed_metrics: bool = False):
                     counts["pred_missing_or_ambiguous_label_yes"] += 1
                 if gold == "no":
                     counts["pred_missing_or_ambiguous_label_no"] += 1
+            
 
             # determine correctness only if both present
+            relation_type = obj.get("relation_type", "unknown")
             if gold is not None and pred is not None:
+                counts[f"evaluated_{relation_type}"] += 1
                 if pred == "yes" and gold == "yes":
                     counts["TP"] += 1
+                    counts["TP_" + relation_type] += 1
                 elif pred == "no" and gold == "no":
                     counts["TN"] += 1
+                    counts["TN_" + relation_type] += 1
                 elif pred == "no" and gold == "yes":
                     counts["FN"] += 1
+                    counts["FN_" + relation_type] += 1
                 elif pred == "yes" and gold == "no":
                     counts["FP"] += 1
+                    counts["FP_" + relation_type] += 1
 
 
     precision = counts.get("TP", 0) / (counts.get("TP", 0) + counts.get("FP", 0)) if (counts.get("TP", 0) + counts.get("FP", 0)) > 0 else None
@@ -265,6 +291,11 @@ def evaluate_file(path: Path, detailed_metrics: bool = False):
     parse_error = counts.get("parse_error", 0)
     evaluated = correct + incorrect
 
+    accuracy_by_type = {}
+    hallucination_rate_by_type = {}
+    for relation_type in ["cognitive", "perception", "unknown"]:
+        accuracy_by_type[relation_type] = (counts.get(f"TP_{relation_type}", 0) + counts.get(f"TN_{relation_type}", 0)) / counts.get(f"evaluated_{relation_type}", 0) if counts.get(f"evaluated_{relation_type}", 0) > 0 else None
+        hallucination_rate_by_type[relation_type] = 1 - accuracy_by_type[relation_type] if accuracy_by_type[relation_type] is not None else None
     accuracy_over_evaluated = (correct / evaluated) if evaluated > 0 else None
     hallucination_rate_evaluated = 1 - accuracy_over_evaluated if accuracy_over_evaluated is not None else None
     accuracy_over_all = (correct / total_lines) if total_lines > 0 else None
@@ -285,6 +316,8 @@ def evaluate_file(path: Path, detailed_metrics: bool = False):
         "parse_error": parse_error,
         "accuracy_over_evaluated": accuracy_over_evaluated,
         "accuracy_over_all_lines": accuracy_over_all,
+        "accuracy_by_type": accuracy_by_type,
+        "hallucination_rate_by_type": hallucination_rate_by_type,
         "hallucination_rate_over_evaluated": hallucination_rate_evaluated,
         "hallucination_rate_over_all_lines": hallucination_rate_all,
         "ambiguous_gold_examples": sorted(ambiguous_gold_values),
@@ -309,15 +342,111 @@ def evaluate_file(path: Path, detailed_metrics: bool = False):
     
     return out
 
+def evaluate_vqa(answer_path: Path, model_path: str):
+    
+    def are_equivalent(label, response, model, tokenizer, device):
+        
+        # label is groundtruth; response is the reply of VLM;
+        def check_implication(label, response):
+            inputs = tokenizer(label, response, return_tensors="pt").to(device)
+            outputs = model(**inputs)
+            logits = outputs.logits
+            largest_index = torch.argmax(F.softmax(logits, dim=1))
+            return largest_index.cpu().item()
+        
+        implication_1 = check_implication(label, response)
+        implication_2 = check_implication(response, label)
+        
+        assert (implication_1 in [0, 1, 2]) and (implication_2 in [0, 1, 2])
+        implications = [implication_1, implication_2]
+        semantically_equivalent = ( implications[0] == 2) and (implications[1] == 2)
+
+        return "yes" if semantically_equivalent else "no"
+    
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_path,
+        trust_remote_code=True
+    )
+
+    # ----- Load model -----
+    print("[INFO] Loading model")
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_path,
+        torch_dtype=torch.float16,
+        device_map="cuda",
+        low_cpu_mem_usage=True,
+        trust_remote_code=True,
+    ).eval()
+    
+    counts = {}
+    
+    answers = [
+        json.loads(q) for q in open(os.path.expanduser(answer_path), "r")
+    ]
+    
+    re_pattern = r'\<.*?\>'
+    device = next(model.parameters()).device
+    
+    for item in tqdm(answers):
+        
+        response = re.sub(re_pattern, '', item['response'].strip())
+        label = item['label']
+            
+        relation_type = item['relation_type']
+        
+        counts[f'{relation_type}'] = counts.get(f'{relation_type}', 0) + 1
+        
+        if response:
+            model_response = are_equivalent(label, response, model, tokenizer, device)
+            
+            if model_response == "yes":
+                counts["equivalent"] = counts.get('equivalent', 0) + 1
+                counts[f'{relation_type}_equivalent'] = counts.get(f'{relation_type}_equivalent', 0) + 1
+            else:
+                counts["different"] = counts.get('different', 0) + 1
+                counts[f'{relation_type}_different'] = counts.get(f'{relation_type}_different', 0) + 1
+        else:
+            counts["ambiguous"] = counts.get("ambiguous", 0) + 1
+            counts[f'{relation_type}_ambiguous'] = counts.get(f'{relation_type}_ambiguous', 0) + 1
+    
+    total = len(answers)
+    
+    summary = {
+        "hallucination_rate_over_all": float(counts['different']) / total,
+        "hallucination_rate_perception": float(counts['perception_different']) / counts["perception"],
+        "hallucination_rate_cognitive": float(counts['cognitive_different']) / counts["cognitive"]
+    }
+    
+    if "ambiguous" in counts and counts["ambiguous"] > 0:
+        summary["ambiguous"] = counts["ambiguous"]
+    
+    out = {
+        "file": str(answer_path),
+        "title": answer_path.stem,
+        "summary": summary,
+        "counts": counts,
+    }
+    
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+
+    return out
 
 def main():
     p = argparse.ArgumentParser(description="Evaluate Yes/No results JSONL (files or root dirs)")
     p.add_argument("paths", nargs="*", help="path(s) to JSONL results file(s) or root directories")
     p.add_argument("--out", "-o", default=str(OUT_REPORT), help="output report JSON path")
     p.add_argument("--detailed_metrics", action="store_true", help="include detailed metrics in the output report")
+    p.add_argument("--model_path", help="path to the deberta or other eval model")
     args = p.parse_args()
-
+    
     paths = []
+
+    questions_path = {
+        "mcq": "Reefknot/Dataset/Multichoice.jsonl",
+        "yesno": "Reefknot/Dataset/YESNO.jsonl",
+        "vqa": "Reefknot/Dataset/VQA.jsonl"
+    }
+
     for rp in args.paths:
         pth = Path(rp)
         if pth.is_dir():
@@ -339,18 +468,20 @@ def main():
     per_file_reports = []
 
     for path in paths:
-        if "Multichoice" in path.stem:
+        
+        stem = path.stem.lower()
+        
+        if "vqa" in stem:
+            result = evaluate_vqa(path, args.model_path)
+        elif "multichoice" in stem:
             #ToDo : handle MCQ lines where response is not a letter A-D and instead whole words.
-            result = evaluate_mcq_choice(path, detailed_metrics=args.detailed_metrics)
-        elif "yesno" in path.stem.lower():
-            result = evaluate_file(path, detailed_metrics=args.detailed_metrics)
+            result = evaluate_mcq_choice(path, args.detailed_metrics)
+        elif "yes" in stem or "no" in stem:
+            result = evaluate_yesno(path, args.detailed_metrics)
         else:
-            #ToDo: VQA files?
-            print(f"Skipping unrecognized file (not YesNo or Multichoice): {path}")
+            print(f"Skipping unrecognized file (not YesNo or Multichoice or VQA): {path}")
             continue
         per_file_reports.append(result)
-        
-       
 
     combined_report = {
         "files": per_file_reports

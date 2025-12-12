@@ -1,0 +1,23 @@
+{
+  "files": [
+    {
+      "file": "C:\\Keshav\\Masters\\Technical University of Darmstadt\\Projects\\Mitigate Relation Hallucination\\Experiment_Results\\NO_DTC_seed42_20T_VQA\\llava_VQA_20T_results.jsonl",
+      "title": "llava_VQA_20T_results",
+      "summary": {
+        "hallucination_rate_over_all": 0.5369609856262834,
+        "hallucination_rate_perception": 0.5265116279069767,
+        "hallucination_rate_cognitive": 0.5452205882352941
+      },
+      "counts": {
+        "perception": 2150,
+        "equivalent": 2255,
+        "perception_equivalent": 1018,
+        "different": 2615,
+        "perception_different": 1132,
+        "cognitive": 2720,
+        "cognitive_equivalent": 1237,
+        "cognitive_different": 1483
+      }
+    }
+  ]
+}
