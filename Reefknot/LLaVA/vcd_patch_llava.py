@@ -17,7 +17,7 @@ from llava.mm_utils import tokenizer_image_token, get_model_name_from_path, Keyw
 from transformers.trainer_utils import enable_full_determinism
 from PIL import Image
 import math
-
+from llava.mm_utils import process_images
 # import kornia
 from transformers import set_seed
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
@@ -26,6 +26,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch
 from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling
+# from PIL import ImageDraw
 
 
 
@@ -71,6 +72,7 @@ def eval_model(args):
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
     ans_file = open(answers_file, "w")
+    # line_counter = 1
     for line in tqdm(questions):
         image_file = line["image_id"] + ".jpg"
         image_path = get_path(line["image_id"], args.image_folder)
@@ -93,17 +95,53 @@ def eval_model(args):
 
         input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(model.device)
 
-        image = Image.open(image_path)
-        image_tensor = image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+        image = Image.open(image_path).convert("RGB")
+        image_tensor = process_images([image], image_processor, model.config)[0]
+        #image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
         
         if args.cd_mode == "patched_cd":
             img_id = line["image_id"]
             if img_id not in image_qn_obj_map.keys():
                 raise RuntimeError(f"Image ID {img_id} not found in image to object mapping, skipping")
-            if len(image_qn_obj_map[img_id][qs]) ==0:
+            if len(image_qn_obj_map[img_id][line["query_prompt"]]) ==0:
                 raise RuntimeError(f"No objects found for image ID {img_id}, cannot add noise")
-            objects_in_question = image_qn_obj_map[img_id][qs][0]
-            image_tensor_cd = add_noise_patch(image_tensor, args.noise_step, bounding_boxes[img_id][objects_in_question[0]])
+            objects_in_question = image_qn_obj_map[img_id][line["query_prompt"]]
+            prev_shape = image.size
+            new_shape = image_tensor.shape[-2:][::-1] # always 336 x 336
+            y_padding = 0
+            x_padding = 0
+            if prev_shape[0] > prev_shape[1]:
+                y_padding = (prev_shape[0] - prev_shape[1]) / 2
+            else:
+                x_padding = (prev_shape[1] - prev_shape[0]) / 2
+            xy_scaling = new_shape[0] / max(prev_shape)
+
+            new_bounding_box = {}
+            old_bounding_box = bounding_boxes[img_id][objects_in_question[0]]
+            new_bounding_box["x"] = int((old_bounding_box["x"] + x_padding) * xy_scaling)
+            new_bounding_box["y"] = int((old_bounding_box["y"] + y_padding) * xy_scaling)
+            new_bounding_box["w"] = int(old_bounding_box["w"] * xy_scaling)
+            new_bounding_box["h"] = int(old_bounding_box["h"] * xy_scaling)
+
+            # # Convert tensor back to PIL Image for drawing
+            # img = image_tensor.numpy()
+            # mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+            # std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+            # unnorm = image_tensor * std + mean
+            # img = unnorm.clamp(0, 1)           # just in case
+            # img = img.permute(1, 2, 0)         # CHW → HWC
+            # img = (img * 255).byte().numpy()   # scale and convert
+            # image_draw = Image.fromarray(img)
+            # draw = ImageDraw.Draw(image_draw)
+            # bb = new_bounding_box
+            # bbox_coords = [bb["x"], bb["y"], bb["x"] + bb["w"], bb["y"] + bb["h"]]
+            # draw.rectangle(bbox_coords, outline="red", width=2)
+            
+            # image_draw.save(f"/work/scratch/kurse/kurs00097/mt45dumo/new_BB_images/{line_counter}_bb.jpg")
+            
+            
+            image_tensor_cd = add_noise_patch(image_tensor, args.noise_step, new_bounding_box)
+
         elif args.cd_mode == "full_cd":
             image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
         else:
