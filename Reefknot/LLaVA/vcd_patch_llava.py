@@ -13,20 +13,22 @@ from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_S
 from llava.conversation import conv_templates, SeparatorStyle
 from llava.model.builder import load_pretrained_model
 from llava.utils import disable_torch_init
-from llava.mm_utils import tokenizer_image_token, get_model_name_from_path, KeywordsStoppingCriteria
+from llava.mm_utils import tokenizer_image_token, get_model_name_from_path, process_images, KeywordsStoppingCriteria
 from transformers.trainer_utils import enable_full_determinism
 from PIL import Image
 import math
-
+import torchvision.transforms as transforms
+from torchvision.transforms import ToPILImage
 # import kornia
 from transformers import set_seed
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise
-from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling
 
+import vcd_noise as noise
+from vcd_sample import evolve_vcd_sampling
 
 
 def get_path(image_id, image_folder):
@@ -63,7 +65,7 @@ def eval_model(args):
     disable_torch_init()
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, args.model_base, model_name,load_4bit=args.quantized, device_map="auto")
+    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, args.model_base, model_name,load_4bit=args.quantized, device_map="auto", offload_folder="./offload")
     questions = [
         json.loads(q) for q in open(os.path.expanduser(args.question_file), "r")
     ]
@@ -71,15 +73,47 @@ def eval_model(args):
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
     ans_file = open(answers_file, "w")
+    
+    with open("../../boxes.json", "r", encoding="utf-8") as f:
+        obj_sub_data = json.load(f)
+
+    not_found_ids = []
     for line in tqdm(questions):
         image_file = line["image_id"] + ".jpg"
         # image_path = os.path.join(args.image_folder, image_file)
         image_path = get_path(line["image_id"], args.image_folder)
         if not os.path.exists(image_path):
             print(f"Image file {image_file} not found, skipping.")
-            continue 
+            continue
 
         qs = line["query_prompt"]
+
+        image_objects_arr = obj_sub_data[line["image_id"]].keys()
+        
+        question = qs.lower()
+        
+        question = question.replace("this photo? Please answer yes or no", "").strip()
+        
+        remove_word_list = ["the", "this", ""]
+        
+        max_object = None
+        for object in image_objects_arr:
+            if object in remove_word_list:
+                continue
+            if " "+object+" " in question:
+                if max_object == None:
+                    max_object = object
+                elif len(max_object) < len(object):
+                    max_object = object
+                    
+        
+        if max_object == None:
+            if image_file not in not_found_ids:
+                not_found_ids.append(image_file)
+        
+        hide_obj_coordinates = obj_sub_data[line["image_id"]][max_object]
+        obj_hidden = max_object
+        
         label = line["label"]
         cur_prompt = qs
         if model.config.mm_use_im_start_end:
@@ -94,17 +128,35 @@ def eval_model(args):
 
         input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(model.device)
 
-        image = Image.open(image_path)
-        image_tensor = image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+        raw_image = Image.open(image_path)
+        image_tensor = process_images([raw_image], image_processor, model.config)[0]
+        
+        transform = transforms.Compose([
+            transforms.ToTensor()
+        ])
+
+        raw_img_tensor = transform(raw_image)
+        
+        to_pil = ToPILImage()
+        
+        image_tensor_cd = None
         
         if args.use_cd:
-            image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
-        else:
-            image_tensor_cd = None      
+            image_tensor_noised = noise.add_diffusion_noise(raw_img_tensor, args.noise_step, hide_obj_coordinates)
+            new_image = to_pil(image_tensor_noised)
+            image_tensor_cd = process_images([new_image], image_processor, model.config)[0]
+            
+            # image_tensor_save = image_tensor_cd.clamp(0, 1)  # values between 0 and 1
 
-        # stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
-        # keywords = [stop_str]
-        # stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
+            # new_image_preprocessed = to_pil(image_tensor_save)
+              # convert tensor -> PIL Image
+
+            # Save the image
+            # new_image_preprocessed.save(f'./modified/{line["image_id"]}_{obj_hidden}_modified.png')
+        
+        stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
+        keywords = [stop_str]
+        stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
 
         with torch.inference_mode():
             output_ids = model.generate(
@@ -132,13 +184,17 @@ def eval_model(args):
                     "query_prompt": cur_prompt,
                     "response": outputs,
                     "label": label,
-                    "mllm_name": mllm
+                    "mllm_name": mllm,
+                    "relation_type": line["relation_type"],
+                    "object_masked": max_object
                 }
             )
             + "\n"
         )
         ans_file.flush()
     ans_file.close()
+    print(not_found_ids)
+    print(len(not_found_ids))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -146,13 +202,13 @@ if __name__ == "__main__":
     parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--image_folder", type=str, default="")
     parser.add_argument("--question-file", type=str, default="tables/question.jsonl")
-    parser.add_argument("--answers-file", type=str, default="answer.jsonl")
+    parser.add_argument("--answers_file", type=str, default="answer.jsonl")
     parser.add_argument("--conv-mode", type=str, default="")
     parser.add_argument("--num-chunks", type=int, default=1)
     parser.add_argument("--chunk-idx", type=int, default=0)
     parser.add_argument("--temperature", type=float, default=0)
     parser.add_argument("--top_p", type=float, default=1)
-    parser.add_argument("--top_k", type=int, default=None)
+    parser.add_argument("--top_k", type=int, default=1)
     parser.add_argument("--max_new_tokens", type=int, default=2)
     parser.add_argument("--noise_step", type=int, default=500)
     parser.add_argument("--use_cd", action='store_true', default=False)
