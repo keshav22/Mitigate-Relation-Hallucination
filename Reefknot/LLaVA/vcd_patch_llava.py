@@ -72,7 +72,7 @@ def eval_model(args):
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
     ans_file = open(answers_file, "w")
-    # line_counter = 1
+    line_counter = 1
     for line in tqdm(questions):
         image_file = line["image_id"] + ".jpg"
         image_path = get_path(line["image_id"], args.image_folder)
@@ -123,21 +123,21 @@ def eval_model(args):
             new_bounding_box["w"] = int(old_bounding_box["w"] * xy_scaling)
             new_bounding_box["h"] = int(old_bounding_box["h"] * xy_scaling)
 
-            # # Convert tensor back to PIL Image for drawing
-            # img = image_tensor.numpy()
-            # mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
-            # std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
-            # unnorm = image_tensor * std + mean
-            # img = unnorm.clamp(0, 1)           # just in case
-            # img = img.permute(1, 2, 0)         # CHW → HWC
-            # img = (img * 255).byte().numpy()   # scale and convert
-            # image_draw = Image.fromarray(img)
+            # Convert tensor back to PIL Image for drawing
+            img = image_tensor.numpy()
+            mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+            std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+            unnorm = image_tensor * std + mean
+            img = unnorm.clamp(0, 1)           # just in case
+            img = img.permute(1, 2, 0)         # CHW → HWC
+            img = (img * 255).byte().numpy()   # scale and convert
+            image_draw = Image.fromarray(img)
             # draw = ImageDraw.Draw(image_draw)
             # bb = new_bounding_box
             # bbox_coords = [bb["x"], bb["y"], bb["x"] + bb["w"], bb["y"] + bb["h"]]
             # draw.rectangle(bbox_coords, outline="red", width=2)
             
-            # image_draw.save(f"/work/scratch/kurse/kurs00097/mt45dumo/new_BB_images/{line_counter}_bb.jpg")
+            image_draw.save(f"/work/scratch/kurse/kurs00097/nl97naca/patched_images/{line_counter}.jpg")
             
             
             image_tensor_cd = add_noise_patch(image_tensor, args.noise_step, new_bounding_box)
