@@ -203,19 +203,20 @@ def sample(
             cd_logits = logits_processor(input_ids, cd_logits)
             cd_logits = logits_warper(input_ids, cd_logits)
 
-            next_token_scores = cd_logits
-            cd_probs = nn.functional.softmax(cd_logits, dim=-1)
-            next_tokens = torch.multinomial(cd_probs, num_samples=1).squeeze(1)
-            
             # Log token distribution for CD probs (first token generation only)
             if not first_token_generated and output_folder is not None:
                 # Remove batch dimension for saving
-                if cd_probs.shape[0] == 1:
-                    cd_probs_output = cd_probs[0]
+                if cd_logits.shape[0] == 1:
+                    cd_logits_output = cd_logits[0]
                 else:
-                    print(f"Warning: Expected batch_size=1 for cd_probs, but got {cd_probs.shape[0]}")
-                    cd_probs_output = cd_probs[0]
-                _save_token_distribution(cd_probs_output.unsqueeze(0), output_folder, "cd_probs", k=5)
+                    print(f"Warning: Expected batch_size=1 for cd_logits, but got {cd_logits.shape[0]}")
+                    cd_logits_output = cd_logits[0]
+                _save_token_distribution(cd_logits_output.unsqueeze(0), output_folder, "cd_logits", k=5)
+
+            next_token_scores = cd_logits
+            cd_probs = nn.functional.softmax(cd_logits, dim=-1)
+            next_tokens = torch.multinomial(cd_probs, num_samples=1).squeeze(1)
+
         else:
             next_token_scores = logits_processor(input_ids, next_token_logits)
             next_token_scores = logits_warper(input_ids, next_token_scores)
