@@ -28,7 +28,15 @@ from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch
 from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling
 # from PIL import ImageDraw
 
-
+def tensor_to_img(tensor):
+    img = tensor.numpy()
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+    std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+    unnorm = tensor * std + mean
+    img = unnorm.clamp(0, 1)           # just in case
+    img = img.permute(1, 2, 0)         # CHW → HWC
+    img = (img * 255).byte().numpy()   # scale and convert
+    return Image.fromarray(img)
 
 def get_path(image_id, image_folder):
     Image_path1 = os.path.join(image_folder, 'VG_100K')
@@ -123,24 +131,20 @@ def eval_model(args):
             new_bounding_box["w"] = int(old_bounding_box["w"] * xy_scaling)
             new_bounding_box["h"] = int(old_bounding_box["h"] * xy_scaling)
 
-            # Convert tensor back to PIL Image for drawing
-            img = image_tensor.numpy()
-            mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
-            std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
-            unnorm = image_tensor * std + mean
-            img = unnorm.clamp(0, 1)           # just in case
-            img = img.permute(1, 2, 0)         # CHW → HWC
-            img = (img * 255).byte().numpy()   # scale and convert
-            image_draw = Image.fromarray(img)
+            # # Convert tensor back to PIL Image for drawing
+            # image_draw = tensor_to_img(image_tensor)
             # draw = ImageDraw.Draw(image_draw)
             # bb = new_bounding_box
             # bbox_coords = [bb["x"], bb["y"], bb["x"] + bb["w"], bb["y"] + bb["h"]]
             # draw.rectangle(bbox_coords, outline="red", width=2)
             
-            image_draw.save(f"/work/scratch/kurse/kurs00097/nl97naca/patched_images/{line_counter}.jpg")
+            # image_draw.save(f"/home/nl97naca/new_BB_images/{line_counter}_bb.jpg")
             
             
             image_tensor_cd = add_noise_patch(image_tensor, args.noise_step, new_bounding_box)
+
+            img_cd = tensor_to_img(image_tensor_cd)
+            img_cd.save(f"/home/nl97naca/patched_images/{line_counter}.jpg")
 
         elif args.cd_mode == "full_cd":
             image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
