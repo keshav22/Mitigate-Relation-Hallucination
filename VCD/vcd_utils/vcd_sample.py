@@ -125,6 +125,7 @@ def sample(
 
     this_peer_finished = False  # used by synced_gpus only
     model_kwargs_cd = model_kwargs.copy() # copy model_kwargs for cd only for the first forward process
+    model_inputs_orig = model_kwargs.copy() #TODO deepcopy?
     first_token_generated = False  # Track if we've generated the first token
     output_folder = "/home/nl97naca/run_env" #model_kwargs.get("token_logits_output_folder", None)  # Optional output folder path
     
@@ -173,6 +174,12 @@ def sample(
         if use_cd:
             ## cd_comments: forward pass of the model with distorted image input
             model_inputs_cd = self.prepare_inputs_for_generation_cd(input_ids, **model_kwargs_cd)
+            
+            #model_inputs_cd == model_inputs in all but "images" value
+            print("model_inputs_orig", model_inputs_orig.keys())
+            print("model_inputs_cd", model_inputs_cd.keys())
+            assert(torch.equal(model_inputs_cd["images"], model_inputs_orig["images"]) == False)
+
             outputs_cd = self(
                 **model_inputs_cd,
                 return_dict=True,
@@ -180,6 +187,7 @@ def sample(
                 output_hidden_states=output_hidden_states_wo_img,
             )
             next_token_logits_cd = outputs_cd.logits[:, -1, :]
+            assert(torch.equal(next_token_logits_cd, next_token_logits))
             
             ## cd_comments: pre-process logits from contrastive inputs
             cd_alpha = model_kwargs.get("cd_alpha") if model_kwargs.get("cd_alpha") is not None else 0.5
