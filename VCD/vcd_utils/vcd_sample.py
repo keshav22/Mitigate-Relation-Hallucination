@@ -21,14 +21,14 @@ import transformers
 from transformers.generation.utils import SampleOutput
 
 
-def _save_token_distribution(logits: torch.Tensor, output_file: str, label: str, k: int = 5):
+def _save_token_distribution(logits: torch.Tensor, output_folder: str, label: str, k: int = 5):
     """
     Save the entire probability distribution tensor from logits.
     Assumes batch_size=1.
     
     Args:
         logits: Tensor of shape (1, vocab_size)
-        output_file: Path to .pt file to save results (directory will be created if needed)
+        output_folder: Path to folder where results will be saved (directory will be created if needed)
         label: Label for this set of tokens (e.g., "next_token_logits" or "next_token_logits_cd")
         k: Number of top tokens to extract for console output only
     """
@@ -42,8 +42,9 @@ def _save_token_distribution(logits: torch.Tensor, output_file: str, label: str,
     probs = nn.functional.softmax(logits[0], dim=-1)
     
     # Save the full probability distribution tensor
-    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-    torch.save(probs, output_file)
+    output_path = Path(output_folder) / f"{label}.pt"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(probs, output_path)
     
     # Print top-k to console for quick inspection
     print(f"\n{label}:")
@@ -125,7 +126,7 @@ def sample(
     this_peer_finished = False  # used by synced_gpus only
     model_kwargs_cd = model_kwargs.copy() # copy model_kwargs for cd only for the first forward process
     first_token_generated = False  # Track if we've generated the first token
-    output_file = model_kwargs.get("token_logits_output_file", None)  # Optional output file path
+    output_folder = "/home/nl97naca/run_env" #model_kwargs.get("token_logits_output_folder", None)  # Optional output folder path
     
     # auto-regressive generation
     while True:
@@ -156,8 +157,8 @@ def sample(
         next_token_logits = outputs.logits[:, -1, :]
         
         # Log token distribution for the first token generation
-        if not first_token_generated and output_file is not None:
-            _save_token_distribution(next_token_logits, output_file, "next_token_logits", k=5)
+        if not first_token_generated and output_folder is not None:
+            _save_token_distribution(next_token_logits, output_folder, "next_token_logits", k=5)
 
         ## For contrastive decoding initial
         use_cd = model_kwargs.get("images_cd") != None
@@ -185,8 +186,8 @@ def sample(
             cd_beta = model_kwargs.get("cd_beta") if model_kwargs.get("cd_beta") is not None else 0.1
             
             # Log token distribution for CD logits (first token generation only)
-            if not first_token_generated and output_file is not None:
-                _save_token_distribution(next_token_logits_cd, output_file, "next_token_logits_cd", k=5)
+            if not first_token_generated and output_folder is not None:
+                _save_token_distribution(next_token_logits_cd, output_folder, "next_token_logits_cd", k=5)
             
             # version 1  set cutoff for Adaptive Plausibility Constraints
             # probs = nn.functional.softmax(next_token_logits, dim=-1)
@@ -207,14 +208,14 @@ def sample(
             next_tokens = torch.multinomial(cd_probs, num_samples=1).squeeze(1)
             
             # Log token distribution for CD probs (first token generation only)
-            if not first_token_generated and output_file is not None:
+            if not first_token_generated and output_folder is not None:
                 # Remove batch dimension for saving
                 if cd_probs.shape[0] == 1:
                     cd_probs_output = cd_probs[0]
                 else:
                     print(f"Warning: Expected batch_size=1 for cd_probs, but got {cd_probs.shape[0]}")
                     cd_probs_output = cd_probs[0]
-                _save_token_distribution(cd_probs_output.unsqueeze(0), output_file, "cd_probs", k=5)
+                _save_token_distribution(cd_probs_output.unsqueeze(0), output_folder, "cd_probs", k=5)
         else:
             next_token_scores = logits_processor(input_ids, next_token_logits)
             next_token_scores = logits_warper(input_ids, next_token_scores)
