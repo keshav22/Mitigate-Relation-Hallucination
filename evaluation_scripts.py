@@ -12,6 +12,10 @@ from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
 )
+import json
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, auc
+import numpy as np   # <-- added
 """
 IMPORTANT:
 Assumes JSON files are named with 'yesno' or 'vqa' or 'multichoice' in the filename to identify type.
@@ -430,6 +434,75 @@ def evaluate_vqa(answer_path: Path, model_path: str):
     print(json.dumps(out, ensure_ascii=False, indent=2))
 
     return out
+
+def evaluate_auroc(file_path):
+
+    y_true = []   # 1 = base model wrong, 0 = base model correct
+    scores = []   # entropy per example
+
+    with open(file_path, "r") as f:
+        for line in f:
+            ex = json.loads(line)
+
+            if ex.get("yes_prob") is None or ex.get("no_prob") is None:
+                continue
+
+            label = (ex.get("label") or "").strip().lower()
+            if label not in ("yes", "no"):
+                continue
+
+            yes_prob = float(ex["yes_prob"])
+            no_prob  = float(ex["no_prob"])
+
+            # ---- base model prediction from yes/no probs ----
+            base_pred = "yes" if yes_prob >= no_prob else "no"
+
+            # positive = base model is wrong (doesn't match label)
+            is_wrong = 1 if base_pred != label else 0
+            y_true.append(is_wrong)
+
+            # score = entropy(yes,no) (higher = more uncertain)
+            score = ex["entropy"]
+            scores.append(score)
+
+    # ROC where positive class = "base model wrong"
+    fpr, tpr, thresholds = roc_curve(y_true, scores)
+    roc_auc = auc(fpr, tpr)
+
+    print("AUROC (detecting base-model errors using entropy):", roc_auc)
+
+    plt.figure()
+    plt.plot(fpr, tpr, label=f"ROC curve (AUC = {roc_auc:.3f})")
+    plt.plot([0, 1], [0, 1], linestyle="--")
+
+    # ---------- mark threshold = 0.9 on the ROC curve ----------
+    target_threshold = 0.9
+
+    # thresholds are in the same order as fpr/tpr; find nearest one
+    idx = (np.abs(thresholds - target_threshold)).argmin()
+    th_at_idx = thresholds[idx]
+    fpr_point = fpr[idx]
+    tpr_point = tpr[idx]
+
+    print(f"Closest ROC threshold to {target_threshold} is {th_at_idx:.4f}")
+    print(f"At this threshold: FPR = {fpr_point:.4f}, TPR = {tpr_point:.4f}")
+
+    # plot the point
+    plt.scatter([fpr_point], [tpr_point], s=50, color="red",
+                label=f"threshold≈{target_threshold} (FPR={fpr_point:.2f}, TPR={tpr_point:.2f})")
+    plt.text(fpr_point, tpr_point,
+            f"  τ≈{th_at_idx:.2f}",
+            color="red", fontsize=8)
+
+    # -----------------------------------------------------------
+
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC: detect base-model mistakes using yes/no entropy")
+    plt.legend(loc="lower right")
+    plt.grid(True)
+    plt.show()
+
 
 def main():
     p = argparse.ArgumentParser(description="Evaluate Yes/No results JSONL (files or root dirs)")
