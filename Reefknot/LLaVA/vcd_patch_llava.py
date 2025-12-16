@@ -25,8 +25,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch
-from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling
+from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling, save_attention_maps
 # from PIL import ImageDraw
+
+import numpy as np
+import matplotlib.pyplot as plt
+import cv2
 
 def tensor_to_img(tensor):
     img = tensor.numpy()
@@ -154,12 +158,14 @@ def eval_model(args):
         # stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
         # keywords = [stop_str]
         # stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
-
+        
         with torch.inference_mode():
             output_ids = model.generate(
                 input_ids,
+                prompt_input_ids = input_ids,
                 images=image_tensor.unsqueeze(0).half().to(model.device),
                 images_cd=(image_tensor_cd.unsqueeze(0).half().to(model.device) if image_tensor_cd is not None else None),
+                tokenizer=tokenizer,
                 cd_alpha = args.cd_alpha,
                 cd_beta = args.cd_beta,
                 do_sample=True,
@@ -168,11 +174,33 @@ def eval_model(args):
                 temperature=args.temperature,
                 max_new_tokens=args.max_new_tokens,
                 use_cache=True,
-                output_scores=True)
-
+                return_dict_in_generate=True,
+                output_scores=True,
+                output_attentions=True
+            )
+        
+        images_cd = (image_tensor_cd.detach().clone().unsqueeze(0).half().to(model.device) if image_tensor_cd is not None else None)
+        if images_cd.dim() == 4:
+            images_cd = images_cd.squeeze(0)  # (C, H, W)
+        # Convert (C,H,W) -> (H,W,C) and to uint8
+        images_cd_np = images_cd.permute(1, 2, 0).cpu().numpy()
+        images_cd_np = (images_cd_np * 255).clip(0, 255).astype(np.uint8)
+        images_cd_pil = Image.fromarray(images_cd_np)
+        
+        save_attention_maps(
+            input_ids,
+            tokenizer,
+            raw_image=img_cd, #previously images_cd_pil
+            output_ids=output_ids.sequences,
+            outputs_attentions=output_ids.attentions,
+            prefix=f"/home/nl97naca/attention_maps/qn_{line_counter}_"
+        )
+        
         outputs = tokenizer.batch_decode(
-            output_ids, skip_special_tokens=True
+            output_ids.sequences,
+            skip_special_tokens=True
         )[0].strip()
+        print("output:", outputs)
         mllm = args.model_path.split('/')[-1]
         ans_file.write(
             json.dumps(
@@ -187,6 +215,7 @@ def eval_model(args):
             + "\n"
         )
         ans_file.flush()
+        line_counter += 1
     ans_file.close()
 
 if __name__ == "__main__":
