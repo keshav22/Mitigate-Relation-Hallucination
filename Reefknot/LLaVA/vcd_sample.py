@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Un
 import torch
 import torch.distributed as dist
 from torch import nn
-
+# from transformers.modeling_outputs import SampleDecoderOnlyOutput, SampleEncoderDecoderOutput
+from transformers.generation.utils import SampleOutput, SampleDecoderOnlyOutput, SampleEncoderDecoderOutput
 from transformers.generation.logits_process import (
     LogitsProcessorList,
 )
@@ -18,8 +19,11 @@ from transformers.generation.stopping_criteria import (
 )
 import transformers
 from transformers.generation.utils import SampleOutput
-
-
+from dataclasses import dataclass
+@dataclass
+class MyGenerationOutput:
+    generation: SampleDecoderOnlyOutput
+    attentions_cd: Optional[Tuple[torch.FloatTensor]] = None
 
 def sample(
     self,
@@ -169,12 +173,16 @@ def sample(
             next_tokens = torch.multinomial(probs, num_samples=1).squeeze(1)
 
 
-
+        decoder_attentions_cd = ()
         # Store scores, attentions and hidden_states when required
         if return_dict_in_generate:
             if output_scores:
                 scores += (next_token_scores,)
             if output_attentions:
+                if use_cd:
+                    decoder_attentions_cd += (
+                        (outputs_cd.decoder_attentions,) if self.config.is_encoder_decoder else (outputs_cd.attentions,)
+                    )
                 decoder_attentions += (
                     (outputs.decoder_attentions,) if self.config.is_encoder_decoder else (outputs.attentions,)
                 )
@@ -237,15 +245,19 @@ def sample(
                 encoder_hidden_states=encoder_hidden_states,
                 decoder_attentions=decoder_attentions,
                 cross_attentions=cross_attentions,
+                decoder_attentions_cd=decoder_attentions_cd,
                 decoder_hidden_states=decoder_hidden_states,
             )
         else:
-            return SampleDecoderOnlyOutput(
-                sequences=input_ids,
-                scores=scores,
-                attentions=decoder_attentions,
-                hidden_states=decoder_hidden_states,
-            )
+            return MyGenerationOutput(
+                    generation=SampleDecoderOnlyOutput(
+                        sequences=input_ids,
+                        scores=scores,
+                        attentions=decoder_attentions,
+                        hidden_states=decoder_hidden_states,
+                    ),
+                    attentions_cd=decoder_attentions_cd
+                )
     else:
         return input_ids
 

@@ -21,6 +21,8 @@ import torchvision.transforms as transforms
 from torchvision.transforms import ToPILImage
 # import kornia
 from transformers import set_seed
+from attention_visualise_lvlm import AttentionVisualizer
+from transformers import AutoConfig
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -52,11 +54,9 @@ def split_list(lst, n):
     chunk_size = math.ceil(len(lst) / n)  # integer division
     return [lst[i : i + chunk_size] for i in range(0, len(lst), chunk_size)]
 
-
 def get_chunk(lst, n, k):
     chunks = split_list(lst, n)
     return chunks[k]
-
 
 
 def eval_model(args):
@@ -65,7 +65,13 @@ def eval_model(args):
     disable_torch_init()
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, args.model_base, model_name,load_4bit=args.quantized, device_map="auto", offload_folder="./offload")
+    
+    
+    cfg = AutoConfig.from_pretrained(model_path)
+    print(cfg)
+
+    
+    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, args.model_base, model_name,load_4bit=args.quantized, device_map="auto", offload_folder="./offload", attn_implementation="eager")
     questions = [
         json.loads(q) for q in open(os.path.expanduser(args.question_file), "r")
     ]
@@ -81,7 +87,7 @@ def eval_model(args):
     for line in tqdm(questions):
         image_file = line["image_id"] + ".jpg"
         # image_path = os.path.join(args.image_folder, image_file)
-        image_path = get_path(line["image_id"], args.image_folder)
+        image_path = get_path(line["image_id"], args.image_folder) 
         if not os.path.exists(image_path):
             print(f"Image file {image_file} not found, skipping.")
             continue
@@ -126,8 +132,12 @@ def eval_model(args):
         conv.append_message(conv.roles[1], None)
         prompt = conv.get_prompt()
 
+    
+        
         input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(model.device)
-
+    
+        
+        
         raw_image = Image.open(image_path)
         image_tensor = process_images([raw_image], image_processor, model.config)[0]
         
@@ -146,20 +156,20 @@ def eval_model(args):
             new_image = to_pil(image_tensor_noised)
             image_tensor_cd = process_images([new_image], image_processor, model.config)[0]
             
-            # image_tensor_save = image_tensor_cd.clamp(0, 1)  # values between 0 and 1
+            image_tensor_save = image_tensor_cd.clamp(0, 1)  # values between 0 and 1
 
-            # new_image_preprocessed = to_pil(image_tensor_save)
+            new_image_preprocessed = to_pil(image_tensor_save)
               # convert tensor -> PIL Image
 
             # Save the image
-            # new_image_preprocessed.save(f'./modified/{line["image_id"]}_{obj_hidden}_modified.png')
+            new_image_preprocessed.save(f'./modified/{line["image_id"]}_{obj_hidden}_modified.png')
         
         stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
         keywords = [stop_str]
         stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
-
+        
         with torch.inference_mode():
-            output_ids = model.generate(
+            output = model.generate(
                 input_ids,
                 images=image_tensor.unsqueeze(0).half().to(model.device),
                 images_cd=(image_tensor_cd.unsqueeze(0).half().to(model.device) if image_tensor_cd is not None else None),
@@ -171,10 +181,53 @@ def eval_model(args):
                 temperature=args.temperature,
                 max_new_tokens=args.max_new_tokens,
                 use_cache=True,
+                output_attentions=True,
+                return_dict_in_generate=True,
+                attn_implementation="eager",
                 output_scores=True)
 
+        attentions = output.generation.attentions
+        attentions_cd = output.attentions_cd
+        
+        # print(len(attentions_cd))
+        
+        org_image_tensor_save = image_tensor.clamp(0, 1)
+        org_img_pil = to_pil(org_image_tensor_save)
+        org_img_pil.save(f'./original/{line["image_id"]}_{obj_hidden}_modified.png')
+        
+        attention_visualizer = AttentionVisualizer(
+                                    input_ids[0],
+                                    IMAGE_TOKEN_INDEX,
+                                    tokenizer,
+                                    model_path,
+                                    attentions,
+                                    org_img_pil,
+                                    line["image_id"],
+                                    args.question_file,
+                                    attention_start_index=1
+                                )
+        
+        attention_visualizer.visualise_layer_attention_heatmap()
+        attention_visualizer.visualise_layer_attention_heatmap(use_layer_count=5)
+        
+        attention_visualizer_noise_image = AttentionVisualizer(
+                                    input_ids[0],
+                                    IMAGE_TOKEN_INDEX,
+                                    tokenizer,
+                                    model_path,
+                                    attentions_cd,
+                                    new_image_preprocessed,
+                                    line["image_id"],
+                                    args.question_file,
+                                    attention_start_index=0,
+                                    add_folder_name="_cd"
+                                )
+        
+        attention_visualizer_noise_image.visualise_layer_attention_heatmap()
+        attention_visualizer_noise_image.visualise_layer_attention_heatmap(use_layer_count=5)
+        
         outputs = tokenizer.batch_decode(
-            output_ids, skip_special_tokens=True
+            output.generation.sequences, skip_special_tokens=True
         )[0].strip()
         mllm = args.model_path.split('/')[-1]
         ans_file.write(
@@ -195,7 +248,7 @@ def eval_model(args):
     ans_file.close()
     print(not_found_ids)
     print(len(not_found_ids))
-
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=str, default="")
