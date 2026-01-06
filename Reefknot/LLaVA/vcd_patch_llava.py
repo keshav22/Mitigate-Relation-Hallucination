@@ -101,7 +101,7 @@ def eval_model(args):
             qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
 
         conv = conv_templates[args.conv_mode].copy()
-        conv.append_message(conv.roles[0], qs + " Please answer this question with one word.")
+        conv.append_message(conv.roles[0], qs)
         conv.append_message(conv.roles[1], None)
         prompt = conv.get_prompt()
 
