@@ -210,6 +210,7 @@ def eval_model(args):
                     "query_prompt": cur_prompt,
                     "response": outputs,
                     "label": label,
+                    "relation_type": line["type"],
                     "mllm_name": mllm
                 }
             )
