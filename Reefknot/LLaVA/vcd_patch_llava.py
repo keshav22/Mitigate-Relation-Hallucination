@@ -187,13 +187,14 @@ def eval_model(args):
         images_cd_np = (images_cd_np * 255).clip(0, 255).astype(np.uint8)
         images_cd_pil = Image.fromarray(images_cd_np)
         
+        raw_image = tensor_to_img(image_tensor)
         save_attention_maps(
             input_ids,
             tokenizer,
-            raw_image=img_cd, #previously images_cd_pil
+            raw_image=raw_image, #previously images_cd_pil #[original-vs-noised-attention]: raw_image vs img_cd
             output_ids=output_ids.sequences,
             outputs_attentions=output_ids.attentions,
-            prefix=f"/home/nl97naca/attention_maps/qn_{line_counter}_"
+            prefix=f"/home/nl97naca/attention_maps_orig/qn_{line_counter}_" #[original-vs-noised-attention]: path
         )
         
         outputs = tokenizer.batch_decode(

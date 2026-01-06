@@ -403,7 +403,7 @@ def sample(
                 scores += (next_token_scores,)
             if output_attentions:
                 decoder_attentions += (
-                    (outputs_cd.decoder_attentions,) if self.config.is_encoder_decoder else (outputs_cd.attentions,) #nico: changed to the attentions of *outputs_cd*, which we want to visualize
+                    (outputs.decoder_attentions,) if self.config.is_encoder_decoder else (outputs.attentions,) #nico: [original-vs-noised-attention]: outputs vs outputs_cd
                 )
                 if self.config.is_encoder_decoder:
                     cross_attentions += (outputs.cross_attentions,)
