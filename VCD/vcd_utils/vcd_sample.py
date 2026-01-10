@@ -202,6 +202,7 @@ def _save_token_distribution(logits: torch.Tensor, output_folder: str, label: st
     
     # Convert logits to probability distribution
     probs = nn.functional.softmax(logits[0], dim=-1)
+    label += "_softmaxed" # to avoid any confusion
     
     # Save the full probability distribution tensor
     output_path = Path(output_folder) / f"{label}.pt"
@@ -287,7 +288,6 @@ def sample(
 
     this_peer_finished = False  # used by synced_gpus only
     model_kwargs_cd = model_kwargs.copy() # copy model_kwargs for cd only for the first forward process
-    model_inputs_orig = model_kwargs.copy() #TODO deepcopy?
     first_token_generated = False  # Track if we've generated the first token
     output_folder = "/home/nl97naca/run_env" #model_kwargs.get("token_logits_output_folder", None)  # Optional output folder path
     
@@ -338,9 +338,9 @@ def sample(
             model_inputs_cd = self.prepare_inputs_for_generation_cd(input_ids, **model_kwargs_cd)
             
             #model_inputs_cd == model_inputs in all but "images" value
-            #print("model_inputs_orig", model_inputs_orig.keys())
-            #print("model_inputs_cd", model_inputs_cd.keys())
-            #assert(torch.equal(model_inputs_cd["images"], model_inputs_orig["images"]) == False)
+            print("model_inputs", model_inputs.keys())
+            #^doesn't have "images" key, since LlavaLlamaForCausalLM.generate() preprocesses images into inputs_embeds, a key of model_inputs dict
+            print("model_inputs_cd", model_inputs_cd.keys())
 
             outputs_cd = self(
                 **model_inputs_cd,
@@ -361,8 +361,8 @@ def sample(
             assert(torch.equal(next_token_logits_cd, next_token_logits) == False)
             
             ## cd_comments: pre-process logits from contrastive inputs
-            cd_alpha = model_kwargs.get("cd_alpha") if model_kwargs.get("cd_alpha") is not None else 0.5
-            cd_beta = model_kwargs.get("cd_beta") if model_kwargs.get("cd_beta") is not None else 0.1
+            cd_alpha = getattr(self.generation_config, "cd_alpha", 0.5)
+            cd_beta = getattr(self.generation_config, "cd_beta", 0.1)
             
             # Log token distribution for CD logits (first token generation only)
             if not first_token_generated and output_folder is not None:
@@ -490,11 +490,20 @@ def sample(
 def patched_validate_model_kwargs(self, model_kwargs):
     return model_kwargs
 
-
+def _stash_vcd_to_config(self, kwargs: dict):
+    for k in ("cd_alpha", "cd_beta"):
+        if k in kwargs:
+            setattr(self.generation_config, f"{k}", kwargs.pop(k))
 
 def evolve_vcd_sampling():
     # print("Patching Transformers sample function for VCD...")
     transformers.generation.utils.GenerationMixin.sample = sample
     # sample is now a protected function in the latest Transformers library
     transformers.generation.utils.GenerationMixin._sample = sample
-    transformers.generation.utils.GenerationMixin._validate_model_kwargs = patched_validate_model_kwargs
+
+    #transformers.generation.utils.GenerationMixin._validate_model_kwargs = patched_validate_model_kwargs
+    _orig_generate = transformers.generation.utils.GenerationMixin.generate
+    def _generate_patch(self, *args, **kwargs):
+        _stash_vcd_to_config(self, kwargs)
+        return _orig_generate(self, *args, **kwargs)
+    transformers.generation.utils.GenerationMixin.generate = _generate_patch

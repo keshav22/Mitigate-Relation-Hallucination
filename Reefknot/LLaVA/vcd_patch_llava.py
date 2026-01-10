@@ -107,8 +107,10 @@ def eval_model(args):
         input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(model.device)
 
         image = Image.open(image_path).convert("RGB")
-        image_tensor = process_images([image], image_processor, model.config)[0]
-        #image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+
+        #image_tensor = image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+        image_tensor = process_images([image], image_processor, model.config)
+        image_tensor = image_tensor[0] #we only got a single image. and add_noise_patch expects this format.
         
         if args.cd_mode == "patched_cd":
             img_id = line["image_id"]
@@ -118,7 +120,7 @@ def eval_model(args):
                 raise RuntimeError(f"No objects found for image ID {img_id}, cannot add noise")
             objects_in_question = image_qn_obj_map[img_id][line["query_prompt"]]
             prev_shape = image.size
-            new_shape = image_tensor.shape[-2:][::-1] # always 336 x 336
+            new_shape = image_tensor.shape[-2:][::-1] # always 336 x 336 #nico: then why flip sizes using [::-1]?
             y_padding = 0
             x_padding = 0
             if prev_shape[0] > prev_shape[1]:
@@ -143,6 +145,7 @@ def eval_model(args):
             
             # image_draw.save(f"/home/nl97naca/new_BB_images/{line_counter}_bb.jpg")
             
+            # Same for CD image
             
             image_tensor_cd = add_noise_patch(image_tensor, args.noise_step, new_bounding_box)
 
@@ -151,8 +154,11 @@ def eval_model(args):
 
         elif args.cd_mode == "full_cd":
             image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
+        elif args.cd_mode == "no_cd":
+            image_tensor_cd = None
         else:
-            image_tensor_cd = None      
+            print("Not a valid cd_mode")
+            exit(1)
 
         # stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
         # keywords = [stop_str]
@@ -161,10 +167,8 @@ def eval_model(args):
         with torch.inference_mode():
             output_ids = model.generate(
                 input_ids,
-                prompt_input_ids = input_ids,
                 images=image_tensor.unsqueeze(0).half().to(model.device),
                 images_cd=(image_tensor_cd.unsqueeze(0).half().to(model.device) if image_tensor_cd is not None else None),
-                tokenizer=tokenizer,
                 cd_alpha = args.cd_alpha,
                 cd_beta = args.cd_beta,
                 do_sample=True,
