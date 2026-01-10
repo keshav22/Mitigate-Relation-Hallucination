@@ -30,7 +30,6 @@ from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling, save_attention_maps
 
 import numpy as np
 import matplotlib.pyplot as plt
-import cv2
 
 def tensor_to_img(tensor):
     img = tensor.numpy()
