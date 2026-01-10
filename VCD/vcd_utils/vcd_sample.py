@@ -351,7 +351,7 @@ def sample(
             # )
             next_token_logits_cd = outputs_cd.logits[:, -1, :]
 
-            assert(torch.equal(next_token_logits_cd, next_token_logits))
+            assert(torch.equal(next_token_logits_cd, next_token_logits) == False)
             
             ## cd_comments: pre-process logits from contrastive inputs
             cd_alpha = model_kwargs.get("cd_alpha") if model_kwargs.get("cd_alpha") is not None else 0.5
