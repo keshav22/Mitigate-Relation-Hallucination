@@ -1,3 +1,4 @@
+ENABLE_ATTENTION_MAP = False
 import copy
 import inspect
 import warnings
@@ -5,7 +6,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 import matplotlib.pyplot as plt
-import cv2
+if ENABLE_ATTENTION_MAP:
+    import cv2 #attention map
 import torch
 import torch.distributed as dist
 from torch import nn
@@ -49,6 +51,11 @@ def get_input_ids():
         return input_ids
 
 def save_attention_maps(input_ids, tokenizer, raw_image, output_ids, outputs_attentions, prefix):
+    # Calling from this file was just trying out, call from other file instead
+
+    if not ENABLE_ATTENTION_MAP:
+        return
+    
     #No need, it's already provided as argument:
     #raw_image = Image.open(args.image_file).convert("RGB")
     #image_tensor = image_processor.preprocess(raw_image, return_tensors="pt")["pixel_values"][0] #CenterCrop, no padding
