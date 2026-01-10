@@ -338,9 +338,9 @@ def sample(
             model_inputs_cd = self.prepare_inputs_for_generation_cd(input_ids, **model_kwargs_cd)
             
             #model_inputs_cd == model_inputs in all but "images" value
-            print("model_inputs", model_inputs.keys())
+            #print("model_inputs", model_inputs.keys())
             #^doesn't have "images" key, since LlavaLlamaForCausalLM.generate() preprocesses images into inputs_embeds, a key of model_inputs dict
-            print("model_inputs_cd", model_inputs_cd.keys())
+            #print("model_inputs_cd", model_inputs_cd.keys())
 
             outputs_cd = self(
                 **model_inputs_cd,
@@ -348,7 +348,7 @@ def sample(
                 output_attentions=True,
                 output_hidden_states=output_hidden_states_wo_img,
             )
-            print("images_cd", type(model_kwargs.get("images_cd")))
+            #print("images_cd", type(model_kwargs.get("images_cd")))
             # save_attention_maps(
             #     input_ids=get_input_ids(), #TODO or input_ids, or model_inputs_cd
             #     tokenizer=model_kwargs.get("tokenizer"),
