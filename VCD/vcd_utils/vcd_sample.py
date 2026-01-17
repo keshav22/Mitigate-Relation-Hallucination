@@ -289,7 +289,7 @@ def sample(
     this_peer_finished = False  # used by synced_gpus only
     model_kwargs_cd = model_kwargs.copy() # copy model_kwargs for cd only for the first forward process
     first_token_generated = False  # Track if we've generated the first token
-    output_folder = "/home/nl97naca/run_env" #model_kwargs.get("token_logits_output_folder", None)  # Optional output folder path
+    output_folder = "/home/mt45dumo/run_env_vanilla" #model_kwargs.get("token_logits_output_folder", None)  # Optional output folder path
     
     # auto-regressive generation
     while True:

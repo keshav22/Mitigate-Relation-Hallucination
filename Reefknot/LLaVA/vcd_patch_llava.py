@@ -150,7 +150,7 @@ def eval_model(args):
             image_tensor_cd = add_noise_patch(image_tensor, args.noise_step, new_bounding_box)
 
             img_cd = tensor_to_img(image_tensor_cd)
-            img_cd.save(f"/home/nl97naca/patched_images/{line_counter}.jpg")
+            # img_cd.save(f"/home/nl97naca/patched_images/{line_counter}.jpg")
 
         elif args.cd_mode == "full_cd":
             image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
@@ -197,7 +197,7 @@ def eval_model(args):
             raw_image=raw_image, #previously images_cd_pil #[original-vs-noised-attention]: raw_image vs img_cd
             output_ids=output_ids.sequences,
             outputs_attentions=output_ids.attentions,
-            prefix=f"/home/nl97naca/attention_maps_orig/qn_{line_counter}_" #[original-vs-noised-attention]: path
+            prefix=f"/home/mt45dumo/attention_maps_orig/qn_{line_counter}_" #[original-vs-noised-attention]: path
         )
         
         outputs = tokenizer.batch_decode(
@@ -213,7 +213,7 @@ def eval_model(args):
                     "query_prompt": cur_prompt,
                     "response": outputs,
                     "label": label,
-                    "relation_type": line["type"],
+                    "relation_type": line["relation_type"],
                     "mllm_name": mllm
                 }
             )
