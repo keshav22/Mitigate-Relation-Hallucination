@@ -25,10 +25,21 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch
-from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling
+from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling, save_attention_maps
 # from PIL import ImageDraw
 
+import numpy as np
+import matplotlib.pyplot as plt
 
+def tensor_to_img(tensor):
+    img = tensor.numpy()
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+    std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+    unnorm = tensor * std + mean
+    img = unnorm.clamp(0, 1)           # just in case
+    img = img.permute(1, 2, 0)         # CHW → HWC
+    img = (img * 255).byte().numpy()   # scale and convert
+    return Image.fromarray(img)
 
 def get_path(image_id, image_folder):
     Image_path1 = os.path.join(image_folder, 'VG_100K')
@@ -72,7 +83,7 @@ def eval_model(args):
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
     ans_file = open(answers_file, "w")
-    # line_counter = 1
+    line_counter = 1
     for line in tqdm(questions):
         image_file = line["image_id"] + ".jpg"
         image_path = get_path(line["image_id"], args.image_folder)
@@ -89,15 +100,17 @@ def eval_model(args):
             qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
 
         conv = conv_templates[args.conv_mode].copy()
-        conv.append_message(conv.roles[0], qs + " Please answer this question with one word.")
+        conv.append_message(conv.roles[0], qs)
         conv.append_message(conv.roles[1], None)
         prompt = conv.get_prompt()
 
         input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(model.device)
 
         image = Image.open(image_path).convert("RGB")
-        image_tensor = process_images([image], image_processor, model.config)[0]
-        #image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+
+        #image_tensor = image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+        image_tensor = process_images([image], image_processor, model.config)
+        image_tensor = image_tensor[0] #we only got a single image. and add_noise_patch expects this format.
         
         if args.cd_mode == "patched_cd":
             img_id = line["image_id"]
@@ -107,7 +120,7 @@ def eval_model(args):
                 raise RuntimeError(f"No objects found for image ID {img_id}, cannot add noise")
             objects_in_question = image_qn_obj_map[img_id][line["query_prompt"]]
             prev_shape = image.size
-            new_shape = image_tensor.shape[-2:][::-1] # always 336 x 336
+            new_shape = image_tensor.shape[-2:][::-1] # always 336 x 336 #nico: then why flip sizes using [::-1]?
             y_padding = 0
             x_padding = 0
             if prev_shape[0] > prev_shape[1]:
@@ -124,33 +137,33 @@ def eval_model(args):
             new_bounding_box["h"] = int(old_bounding_box["h"] * xy_scaling)
 
             # # Convert tensor back to PIL Image for drawing
-            # img = image_tensor.numpy()
-            # mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
-            # std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
-            # unnorm = image_tensor * std + mean
-            # img = unnorm.clamp(0, 1)           # just in case
-            # img = img.permute(1, 2, 0)         # CHW → HWC
-            # img = (img * 255).byte().numpy()   # scale and convert
-            # image_draw = Image.fromarray(img)
+            # image_draw = tensor_to_img(image_tensor)
             # draw = ImageDraw.Draw(image_draw)
             # bb = new_bounding_box
             # bbox_coords = [bb["x"], bb["y"], bb["x"] + bb["w"], bb["y"] + bb["h"]]
             # draw.rectangle(bbox_coords, outline="red", width=2)
             
-            # image_draw.save(f"/work/scratch/kurse/kurs00097/mt45dumo/new_BB_images/{line_counter}_bb.jpg")
+            # image_draw.save(f"/home/nl97naca/new_BB_images/{line_counter}_bb.jpg")
             
+            # Same for CD image
             
             image_tensor_cd = add_noise_patch(image_tensor, args.noise_step, new_bounding_box)
 
+            img_cd = tensor_to_img(image_tensor_cd)
+            img_cd.save(f"/home/nl97naca/patched_images/{line_counter}.jpg")
+
         elif args.cd_mode == "full_cd":
             image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
+        elif args.cd_mode == "no_cd":
+            image_tensor_cd = None
         else:
-            image_tensor_cd = None      
+            print("Not a valid cd_mode")
+            exit(1)
 
         # stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
         # keywords = [stop_str]
         # stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
-
+        
         with torch.inference_mode():
             output_ids = model.generate(
                 input_ids,
@@ -164,11 +177,34 @@ def eval_model(args):
                 temperature=args.temperature,
                 max_new_tokens=args.max_new_tokens,
                 use_cache=True,
-                output_scores=True)
-
+                return_dict_in_generate=True,
+                output_scores=True,
+                output_attentions=True
+            )
+        
+        images_cd = (image_tensor_cd.detach().clone().unsqueeze(0).half().to(model.device) if image_tensor_cd is not None else None)
+        if images_cd.dim() == 4:
+            images_cd = images_cd.squeeze(0)  # (C, H, W)
+        # Convert (C,H,W) -> (H,W,C) and to uint8
+        images_cd_np = images_cd.permute(1, 2, 0).cpu().numpy()
+        images_cd_np = (images_cd_np * 255).clip(0, 255).astype(np.uint8)
+        images_cd_pil = Image.fromarray(images_cd_np)
+        
+        raw_image = tensor_to_img(image_tensor)
+        save_attention_maps(
+            input_ids,
+            tokenizer,
+            raw_image=raw_image, #previously images_cd_pil #[original-vs-noised-attention]: raw_image vs img_cd
+            output_ids=output_ids.sequences,
+            outputs_attentions=output_ids.attentions,
+            prefix=f"/home/nl97naca/attention_maps_orig/qn_{line_counter}_" #[original-vs-noised-attention]: path
+        )
+        
         outputs = tokenizer.batch_decode(
-            output_ids, skip_special_tokens=True
+            output_ids.sequences,
+            skip_special_tokens=True
         )[0].strip()
+        print("output:", outputs)
         mllm = args.model_path.split('/')[-1]
         ans_file.write(
             json.dumps(
@@ -177,12 +213,14 @@ def eval_model(args):
                     "query_prompt": cur_prompt,
                     "response": outputs,
                     "label": label,
+                    "relation_type": line["type"],
                     "mllm_name": mllm
                 }
             )
             + "\n"
         )
         ans_file.flush()
+        line_counter += 1
     ans_file.close()
 
 if __name__ == "__main__":
