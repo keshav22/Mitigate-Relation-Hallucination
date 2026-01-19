@@ -1,0 +1,131 @@
+{
+    "file": "llava_13b_YesNo_dino500_multi.jsonl",
+    "title": "llava_13b_YesNo_dino500_multi",
+    "summary": {
+      "total_lines": 9740,
+      "evaluated_pairs": 9740,
+      "precision": 0.5959652563743345,
+      "recall": 0.8735112936344969,
+      "f1": 0.7085276482345103,
+      "correct": 6240,
+      "incorrect": 3500,
+      "pred_missing_or_ambiguous_total": 0,
+      "pred_missing_or_ambiguous_label_yes": 0,
+      "pred_missing_or_ambiguous_label_no": 0,
+      "gold_missing_or_ambiguous": 0,
+      "parse_error": 0,
+      "accuracy_over_evaluated": 0.6406570841889117,
+      "accuracy_over_all_lines": 0.6406570841889117,
+      "accuracy_by_type": {
+        "cognitive": 0.6665441176470588,
+        "perception": 0.607906976744186,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.3334558823529412,
+        "perception": 0.39209302325581397,
+        "unknown": null
+      },
+      "hallucination_rate_over_evaluated": 0.35934291581108835,
+      "hallucination_rate_over_all_lines": 0.35934291581108835,
+      "ambiguous_gold_examples": [],
+      "ambiguous_pred_examples": []
+    }
+}
+{
+  "file": "llava_13b_YesNo_dino500.jsonl",
+  "title": "llava_13b_YesNo_dino500",
+  "summary": {
+    "total_lines": 9740,
+    "evaluated_pairs": 9740,
+    "precision": 0.5988771929824561,
+    "recall": 0.8761806981519508,
+    "f1": 0.7114631096290122,
+    "correct": 6279,
+    "incorrect": 3461,
+    "pred_missing_or_ambiguous_total": 0,
+    "pred_missing_or_ambiguous_label_yes": 0,
+    "pred_missing_or_ambiguous_label_no": 0,
+    "gold_missing_or_ambiguous": 0,
+    "parse_error": 0,
+    "accuracy_over_evaluated": 0.6446611909650924,
+    "accuracy_over_all_lines": 0.6446611909650924,
+    "accuracy_by_type": {
+      "cognitive": 0.6768382352941177,
+      "perception": 0.6039534883720931,
+      "unknown": null
+    },
+    "hallucination_rate_by_type": {
+      "cognitive": 0.3231617647058823,
+      "perception": 0.39604651162790694,
+      "unknown": null
+    },
+    "hallucination_rate_over_evaluated": 0.35533880903490755,
+    "hallucination_rate_over_all_lines": 0.35533880903490755,
+    "ambiguous_gold_examples": [],
+    "ambiguous_pred_examples": []
+  }
+}
+{
+    "file": "llava_13b_Multichoice_dino500_multi.jsonl",
+    "title": "llava_13b_Multichoice_dino500_multi",
+    "summary": {
+      "total_lines": 6950,
+      "evaluated_lines": 6937,
+      "accuracy_over_all_lines": 0.6571223021582734,
+      "accuracy_over_evaluated_lines": 0.6583537552256018,
+      "hallucination_rate_over_all_lines": 0.3428776978417266,
+      "hallucination_rate_over_evaluated_lines": 0.3416462447743982,
+      "macro_precision": 0.6950969222591787,
+      "macro_recall": 0.6554642357908982,
+      "macro_f1": 0.6532606878507909,
+      "per_class_mcq": {
+        "a": {
+          "precision": 0.7464882943143812,
+          "recall": 0.6432276657060518,
+          "f1": 0.6910216718266253
+        },
+        "b": {
+          "precision": 0.8106448311156602,
+          "recall": 0.4751049790041992,
+          "f1": 0.5990922844175491
+        },
+        "c": {
+          "precision": 0.6697645600991325,
+          "recall": 0.6135073779795687,
+          "f1": 0.6404028436018957
+        },
+        "d": {
+          "precision": 0.5534900035075412,
+          "recall": 0.8900169204737732,
+          "f1": 0.6825259515570935
+        }
+      },
+      "accuracy_by_type": {
+        "cognitive": 0.7612283267181951,
+        "perception": 0.42930232558139536,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.23877167328180493,
+        "perception": 0.5706976744186046,
+        "unknown": null
+      },
+      "parse_errors_label": 0,
+      "parse_errors_response": 13,
+      "ambiguous_responses": [
+        "Approaching",
+        "Biting",
+        "Blow",
+        "Catch",
+        "Displaying",
+        "Driv",
+        "Following",
+        "Hug",
+        "Leading",
+        "Riding",
+        "Running",
+        "Showing"
+      ]
+    }
+}

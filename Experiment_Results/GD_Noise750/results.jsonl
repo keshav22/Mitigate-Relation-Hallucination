@@ -1,0 +1,147 @@
+{
+    "file": "llava_13b_YesNo_dino750_multi.jsonl",
+    "title": "llava_13b_YesNo_dino750_multi",
+    "summary": {
+      "total_lines": 9740,
+      "evaluated_pairs": 9740,
+      "precision": 0.5894145950280674,
+      "recall": 0.9055441478439425,
+      "f1": 0.7140544041450777,
+      "correct": 6208,
+      "incorrect": 3532,
+      "pred_missing_or_ambiguous_total": 0,
+      "pred_missing_or_ambiguous_label_yes": 0,
+      "pred_missing_or_ambiguous_label_no": 0,
+      "gold_missing_or_ambiguous": 0,
+      "parse_error": 0,
+      "accuracy_over_evaluated": 0.6373716632443532,
+      "accuracy_over_all_lines": 0.6373716632443532,
+      "accuracy_by_type": {
+        "cognitive": 0.6619485294117647,
+        "perception": 0.6062790697674418,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.33805147058823526,
+        "perception": 0.39372093023255816,
+        "unknown": null
+      },
+      "hallucination_rate_over_evaluated": 0.36262833675564676,
+      "hallucination_rate_over_all_lines": 0.36262833675564676,
+      "ambiguous_gold_examples": [],
+      "ambiguous_pred_examples": []
+    }
+}
+{
+  "file": "llava_13b_YesNo_dino750.jsonl",
+  "title": "llava_13b_YesNo_dino750",
+  "summary": {
+    "total_lines": 9740,
+    "evaluated_pairs": 9740,
+    "precision": 0.5960632104241752,
+    "recall": 0.8829568788501027,
+    "f1": 0.7116848725587553,
+    "correct": 6256,
+    "incorrect": 3484,
+    "pred_missing_or_ambiguous_total": 0,
+    "pred_missing_or_ambiguous_label_yes": 0,
+    "pred_missing_or_ambiguous_label_no": 0,
+    "gold_missing_or_ambiguous": 0,
+    "parse_error": 0,
+    "accuracy_over_evaluated": 0.6422997946611909,
+    "accuracy_over_all_lines": 0.6422997946611909,
+    "accuracy_by_type": {
+      "cognitive": 0.6685661764705882,
+      "perception": 0.6090697674418605,
+      "unknown": null
+    },
+    "hallucination_rate_by_type": {
+      "cognitive": 0.33143382352941175,
+      "perception": 0.3909302325581395,
+      "unknown": null
+    },
+    "hallucination_rate_over_evaluated": 0.3577002053388091,
+    "hallucination_rate_over_all_lines": 0.3577002053388091,
+    "ambiguous_gold_examples": [],
+    "ambiguous_pred_examples": []
+  }
+}
+{
+    "file": "llava_13b_Multichoice_dino750_multi.jsonl",
+    "title": "llava_13b_Multichoice_dino750_multi",
+    "summary": {
+      "total_lines": 6950,
+      "evaluated_lines": 6907,
+      "accuracy_over_all_lines": 0.6581294964028777,
+      "accuracy_over_evaluated_lines": 0.6622267265093383,
+      "hallucination_rate_over_all_lines": 0.34187050359712234,
+      "hallucination_rate_over_evaluated_lines": 0.33777327349066166,
+      "macro_precision": 0.6934539547621419,
+      "macro_recall": 0.6589542567396107,
+      "macro_f1": 0.6568411852103535,
+      "per_class_mcq": {
+        "a": {
+          "precision": 0.7469635627530364,
+          "recall": 0.6387766878245816,
+          "f1": 0.688646967340591
+        },
+        "b": {
+          "precision": 0.7936191425722832,
+          "recall": 0.4835965978128797,
+          "f1": 0.6009815024537561
+        },
+        "c": {
+          "precision": 0.6668678334339168,
+          "recall": 0.6281978396816373,
+          "f1": 0.6469555035128806
+        },
+        "d": {
+          "precision": 0.566365280289331,
+          "recall": 0.8852459016393442,
+          "f1": 0.6907807675341862
+        }
+      },
+      "accuracy_by_type": {
+        "cognitive": 0.763506411603952,
+        "perception": 0.4381395348837209,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.23649358839604795,
+        "perception": 0.5618604651162791,
+        "unknown": null
+      },
+      "parse_errors_label": 0,
+      "parse_errors_response": 43,
+      "ambiguous_responses": [
+        "Approaching",
+        "Biting",
+        "Blow",
+        "Boarding",
+        "Carry",
+        "Catch",
+        "Chasing",
+        "Checking",
+        "Creating",
+        "Displaying",
+        "Driv",
+        "Flying",
+        "Following",
+        "Holding",
+        "Hug",
+        "Leading",
+        "Leaving",
+        "Obser",
+        "Performing",
+        "Pointing",
+        "Riding",
+        "Running",
+        "Serving",
+        "Showing",
+        "Supporting",
+        "Taking",
+        "Waiting",
+        "Watching"
+      ]
+    }
+}
