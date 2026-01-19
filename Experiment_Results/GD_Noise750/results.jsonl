@@ -67,8 +67,87 @@
   }
 }
 {
-    "file": "llava_13b_Multichoice_dino750_multi.jsonl",
-    "title": "llava_13b_Multichoice_dino750_multi",
+  "file": "llava_13b_Multichoice_dino750_multi.jsonl",
+  "title": "llava_13b_Multichoice_dino750_multi",
+  "summary": {
+    "total_lines": 6950,
+    "evaluated_lines": 6907,
+    "accuracy_over_all_lines": 0.658273381294964,
+    "accuracy_over_evaluated_lines": 0.6623715071666425,
+    "hallucination_rate_over_all_lines": 0.34172661870503596,
+    "hallucination_rate_over_evaluated_lines": 0.3376284928333575,
+    "macro_precision": 0.6937626724176207,
+    "macro_recall": 0.6590858223753313,
+    "macro_f1": 0.6569402007403476,
+    "per_class_mcq": {
+      "a": {
+        "precision": 0.74645987862441,
+        "recall": 0.6387766878245816,
+        "f1": 0.6884328358208955
+      },
+      "b": {
+        "precision": 0.795,
+        "recall": 0.48298906439854195,
+        "f1": 0.6009070294784581
+      },
+      "c": {
+        "precision": 0.6670687575392038,
+        "recall": 0.6287663445139283,
+        "f1": 0.6473514779045947
+      },
+      "d": {
+        "precision": 0.5665220535068691,
+        "recall": 0.8858111927642736,
+        "f1": 0.6910694597574422
+      }
+    },
+    "accuracy_by_type": {
+      "cognitive": 0.7637166281269708,
+      "perception": 0.4381395348837209,
+      "unknown": null
+    },
+    "hallucination_rate_by_type": {
+      "cognitive": 0.23628337187302917,
+      "perception": 0.5618604651162791,
+      "unknown": null
+    },
+    "parse_errors_label": 0,
+    "parse_errors_response": 43,
+    "ambiguous_responses": [
+      "Approaching",
+      "Biting",
+      "Blowing",
+      "Boarding",
+      "Carrying",
+      "Catching",
+      "Chasing",
+      "Checking",
+      "Creating",
+      "Displaying",
+      "Driving",
+      "Flying",
+      "Following",
+      "Holding",
+      "Hugging",
+      "Leading",
+      "Leaving",
+      "Observing",
+      "Performing",
+      "Pointing",
+      "Riding",
+      "Running",
+      "Serving",
+      "Showing",
+      "Supporting",
+      "Taking",
+      "Waiting",
+      "Watching"
+    ]
+  }
+}
+{
+    "file": "llava_13b_Multichoice_dino750_multi_2T.jsonl",
+    "title": "llava_13b_Multichoice_dino750_multi_2T",
     "summary": {
       "total_lines": 6950,
       "evaluated_lines": 6907,

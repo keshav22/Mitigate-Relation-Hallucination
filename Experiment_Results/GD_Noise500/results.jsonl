@@ -67,8 +67,71 @@
   }
 }
 {
-    "file": "llava_13b_Multichoice_dino500_multi.jsonl",
-    "title": "llava_13b_Multichoice_dino500_multi",
+  "file": "llava_13b_Multichoice_dino500_multi.jsonl",
+  "title": "llava_13b_Multichoice_dino500_multi",
+  "summary": {
+    "total_lines": 6950,
+    "evaluated_lines": 6937,
+    "accuracy_over_all_lines": 0.6572661870503597,
+    "accuracy_over_evaluated_lines": 0.6584979097592619,
+    "hallucination_rate_over_all_lines": 0.34273381294964034,
+    "hallucination_rate_over_evaluated_lines": 0.3415020902407381,
+    "macro_precision": 0.6952491332105851,
+    "macro_recall": 0.655614205796897,
+    "macro_f1": 0.6534405360356658,
+    "per_class_mcq": {
+      "a": {
+        "precision": 0.7464882943143812,
+        "recall": 0.6432276657060518,
+        "f1": 0.6910216718266253
+      },
+      "b": {
+        "precision": 0.810838445807771,
+        "recall": 0.47570485902819437,
+        "f1": 0.5996219281663516
+      },
+      "c": {
+        "precision": 0.6701797892126472,
+        "recall": 0.6135073779795687,
+        "f1": 0.6405925925925926
+      },
+      "d": {
+        "precision": 0.5534900035075412,
+        "recall": 0.8900169204737732,
+        "f1": 0.6825259515570935
+      }
+    },
+    "accuracy_by_type": {
+      "cognitive": 0.761437225819929,
+      "perception": 0.42930232558139536,
+      "unknown": null
+    },
+    "hallucination_rate_by_type": {
+      "cognitive": 0.238562774180071,
+      "perception": 0.5706976744186046,
+      "unknown": null
+    },
+    "parse_errors_label": 0,
+    "parse_errors_response": 13,
+    "ambiguous_responses": [
+      "Approaching",
+      "Biting",
+      "Blowing",
+      "Catching",
+      "Displaying",
+      "Driving",
+      "Following",
+      "Hugging",
+      "Leading",
+      "Riding",
+      "Running",
+      "Showing"
+    ]
+  }
+}
+{
+    "file": "llava_13b_Multichoice_dino500_multi_2T.jsonl",
+    "title": "llava_13b_Multichoice_dino500_multi_2T",
     "summary": {
       "total_lines": 6950,
       "evaluated_lines": 6937,
