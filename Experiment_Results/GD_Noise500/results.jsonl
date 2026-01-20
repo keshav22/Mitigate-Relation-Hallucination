@@ -67,6 +67,64 @@
   }
 }
 {
+  "file": "llava_13b_Multichoice_dino500_single.jsonl",
+  "title": "llava_13b_Multichoice_dino500_single",
+  "summary": {
+    "total_lines": 6950,
+    "evaluated_lines": 6939,
+    "accuracy_over_all_lines": 0.6542446043165467,
+    "accuracy_over_evaluated_lines": 0.6552817408848537,
+    "hallucination_rate_over_all_lines": 0.34575539568345326,
+    "hallucination_rate_over_evaluated_lines": 0.3447182591151463,
+    "macro_precision": 0.6925833111241105,
+    "macro_recall": 0.6524205828559435,
+    "macro_f1": 0.6506479087340029,
+    "per_class_mcq": {
+      "a": {
+        "precision": 0.7550744248985115,
+        "recall": 0.6432276657060518,
+        "f1": 0.6946778711484594
+      },
+      "b": {
+        "precision": 0.8046558704453441,
+        "recall": 0.4766187050359712,
+        "f1": 0.598644578313253
+      },
+      "c": {
+        "precision": 0.6621032980709396,
+        "recall": 0.6042021578648495,
+        "f1": 0.6318289786223278
+      },
+      "d": {
+        "precision": 0.5484996510816469,
+        "recall": 0.8856338028169014,
+        "f1": 0.6774402068519716
+      }
+    },
+    "accuracy_by_type": {
+      "cognitive": 0.7586134892461892,
+      "perception": 0.42511627906976746,
+      "unknown": null
+    },
+    "hallucination_rate_by_type": {
+      "cognitive": 0.2413865107538108,
+      "perception": 0.5748837209302325,
+      "unknown": null
+    },
+    "parse_errors_label": 0,
+    "parse_errors_response": 11,
+    "ambiguous_responses": [
+      "Blowing",
+      "Catching",
+      "Driving",
+      "Following",
+      "Leading",
+      "Running",
+      "Showing"
+    ]
+  }
+}
+{
   "file": "llava_13b_Multichoice_dino500_multi.jsonl",
   "title": "llava_13b_Multichoice_dino500_multi",
   "summary": {

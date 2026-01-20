@@ -67,6 +67,78 @@
   }
 }
 {
+  "file": "llava_13b_Multichoice_dino900_single.jsonl",
+  "title": "llava_13b_Multichoice_dino900_single",
+  "summary": {
+    "total_lines": 6950,
+    "evaluated_lines": 6920,
+    "accuracy_over_all_lines": 0.6572661870503597,
+    "accuracy_over_evaluated_lines": 0.6601156069364161,
+    "hallucination_rate_over_all_lines": 0.34273381294964034,
+    "hallucination_rate_over_evaluated_lines": 0.33988439306358387,
+    "macro_precision": 0.6968014157712463,
+    "macro_recall": 0.657031676898063,
+    "macro_f1": 0.6554966932376857,
+    "per_class_mcq": {
+      "a": {
+        "precision": 0.7569775357385977,
+        "recall": 0.6409221902017291,
+        "f1": 0.6941323345817728
+      },
+      "b": {
+        "precision": 0.8128834355828221,
+        "recall": 0.48065296251511486,
+        "f1": 0.6041033434650456
+      },
+      "c": {
+        "precision": 0.6616314199395771,
+        "recall": 0.6218057921635435,
+        "f1": 0.6411007025761124
+      },
+      "d": {
+        "precision": 0.5557132718239887,
+        "recall": 0.8847457627118644,
+        "f1": 0.6826503923278118
+      }
+    },
+    "accuracy_by_type": {
+      "cognitive": 0.7622641509433963,
+      "perception": 0.43348837209302327,
+      "unknown": null
+    },
+    "hallucination_rate_by_type": {
+      "cognitive": 0.23773584905660372,
+      "perception": 0.5665116279069767,
+      "unknown": null
+    },
+    "parse_errors_label": 0,
+    "parse_errors_response": 30,
+    "ambiguous_responses": [
+      "Approaching",
+      "Biting",
+      "Blowing",
+      "Boarding",
+      "Catching",
+      "Chasing",
+      "Displaying",
+      "Driving",
+      "Following",
+      "Holding",
+      "Leading",
+      "Leaving",
+      "Observing",
+      "Performing",
+      "Riding",
+      "Running",
+      "Showing",
+      "Supporting",
+      "Taking",
+      "Using",
+      "Watching"
+    ]
+  }
+}
+{
   "file": "llava_13b_Multichoice_dino900_multi.jsonl",
   "title": "llava_13b_Multichoice_dino900_multi",
   "summary": {

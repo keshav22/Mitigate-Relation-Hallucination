@@ -67,6 +67,77 @@
   }
 }
 {
+  "file": "llava_13b_Multichoice_dino750_single.jsonl",
+  "title": "llava_13b_Multichoice_dino750_single",
+  "summary": {
+    "total_lines": 6950,
+    "evaluated_lines": 6923,
+    "accuracy_over_all_lines": 0.657841726618705,
+    "accuracy_over_evaluated_lines": 0.6604073378593095,
+    "hallucination_rate_over_all_lines": 0.342158273381295,
+    "hallucination_rate_over_evaluated_lines": 0.3395926621406905,
+    "macro_precision": 0.6966417697115862,
+    "macro_recall": 0.6573708252654875,
+    "macro_f1": 0.655620437204826,
+    "per_class_mcq": {
+      "a": {
+        "precision": 0.7603530210454854,
+        "recall": 0.6455331412103746,
+        "f1": 0.6982543640897756
+      },
+      "b": {
+        "precision": 0.8081632653061225,
+        "recall": 0.4779722389861195,
+        "f1": 0.6006825938566553
+      },
+      "c": {
+        "precision": 0.6622195269860521,
+        "recall": 0.6201022146507666,
+        "f1": 0.6404692082111437
+      },
+      "d": {
+        "precision": 0.5558312655086849,
+        "recall": 0.8858757062146893,
+        "f1": 0.6830755826617295
+      }
+    },
+    "accuracy_by_type": {
+      "cognitive": 0.7628326000419023,
+      "perception": 0.4330232558139535,
+      "unknown": null
+    },
+    "hallucination_rate_by_type": {
+      "cognitive": 0.23716739995809766,
+      "perception": 0.5669767441860465,
+      "unknown": null
+    },
+    "parse_errors_label": 0,
+    "parse_errors_response": 27,
+    "ambiguous_responses": [
+      "Approaching",
+      "Biting",
+      "Blowing",
+      "Boarding",
+      "Catching",
+      "Chasing",
+      "Displaying",
+      "Driving",
+      "Following",
+      "Holding",
+      "Leading",
+      "Leaving",
+      "Observing",
+      "Performing",
+      "Riding",
+      "Running",
+      "Supporting",
+      "Taking",
+      "Using",
+      "Watching"
+    ]
+  }
+}
+{
   "file": "llava_13b_Multichoice_dino750_multi.jsonl",
   "title": "llava_13b_Multichoice_dino750_multi",
   "summary": {
