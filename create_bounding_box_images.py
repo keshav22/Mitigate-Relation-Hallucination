@@ -1,9 +1,8 @@
 import json,os
 from collections import Counter
-from tkinter import Image
 import sys
 import numpy as np
-from PIL import ImageDraw
+from PIL import Image, ImageDraw
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -77,6 +76,7 @@ def get_objects_in_question(question, image_id):
         remove_word_list.append("photo")
 
     if image_id not in OBJECTS:
+        exit(1)
         return []
     
     matched = [obj for obj in OBJECTS[image_id].keys() if " "+obj+" " in question and obj.lower() not in remove_word_list ]
@@ -118,7 +118,7 @@ def create_question_object_mapping(objects_json="Reefknot/Dataset/objects.json",
                     count["wrong_obj_count"] += 1
                     
             with open(json_output,"w") as fp:
-                json.dump(image_qnobject_map,fp)
+                json.dump(image_qnobject_map,fp, indent=2)
 
             print(f"Total wrong object count: {count['wrong_obj_count']}")
             print(f"Total zero object count: {count['zero_obj_count']}")
