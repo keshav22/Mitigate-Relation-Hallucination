@@ -497,12 +497,23 @@ def _stash_vcd_to_config(self, kwargs: dict):
 
 def evolve_vcd_sampling():
     # print("Patching Transformers sample function for VCD...")
-    transformers.generation.utils.GenerationMixin.sample = sample
-    # sample is now a protected function in the latest Transformers library
-    transformers.generation.utils.GenerationMixin._sample = sample
+    a = transformers.generation.utils.GenerationMixin
+    if (hasattr(a, 'sample') and callable(a.sample)):
+        transformers.generation.utils.GenerationMixin.sample = sample
+    elif (hasattr(a, '_sample') and callable(a._sample)):
+        # sample is now a protected function in the latest Transformers library
+        transformers.generation.utils.GenerationMixin._sample = sample
+    else:
+        print("No suitable sample method found in GenerationMixin.")
+        exit(1)
 
     #transformers.generation.utils.GenerationMixin._validate_model_kwargs = patched_validate_model_kwargs
+    
+    if not (hasattr(a, 'generate') and callable(a.generate)):
+        print("No suitable generate method found in GenerationMixin.")
+        exit(1)
     _orig_generate = transformers.generation.utils.GenerationMixin.generate
+
     def _generate_patch(self, *args, **kwargs):
         _stash_vcd_to_config(self, kwargs)
         return _orig_generate(self, *args, **kwargs)
