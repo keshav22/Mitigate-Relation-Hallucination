@@ -88,8 +88,7 @@ def eval_model(args):
         image_file = line["image_id"] + ".jpg"
         image_path = get_path(line["image_id"], args.image_folder)
         if not os.path.exists(image_path):
-            print(f"Image file {image_file} not found, skipping.")
-            continue 
+            raise RuntimeError(f"Image file {image_file} not found.")
 
         qs = line["query_prompt"]
         label = line["label"]
