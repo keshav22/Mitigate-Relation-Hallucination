@@ -380,7 +380,7 @@ def sample(
 
         # prepare model inputs
         model_inputs = self.prepare_inputs_for_generation(input_ids, **model_kwargs)
-        label = getattr(self.generation_config, "label"). #get label from generation config for logging
+        label = getattr(self.generation_config, "label") #get label from generation config for logging
         # forward pass to get next token
         outputs = self(
             **model_inputs,
