@@ -26,10 +26,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch
 from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling, save_attention_maps
-# from PIL import ImageDraw
-
+from PIL import ImageDraw
+from Utils.utils import shuffle_patch_image
 import numpy as np
+from pathlib import Path
 import matplotlib.pyplot as plt
+
+PROJECT_HOME = "/home/mt45dumo"
 
 def tensor_to_img(tensor):
     img = tensor.numpy()
@@ -143,7 +146,7 @@ def eval_model(args):
             # bbox_coords = [bb["x"], bb["y"], bb["x"] + bb["w"], bb["y"] + bb["h"]]
             # draw.rectangle(bbox_coords, outline="red", width=2)
             
-            # image_draw.save(f"/home/nl97naca/new_BB_images/{line_counter}_bb.jpg")
+            # image_draw.save(f"/home/mt45dumo/runenv/bb_images/{line_counter}_bb.jpg")
             
             # Same for CD image
             
@@ -156,10 +159,21 @@ def eval_model(args):
             image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
         elif args.cd_mode == "no_cd":
             image_tensor_cd = None
+        elif args.cd_mode == "shuffle_cd":
+            #Patch_size here is basically how large each patch is. So for 336x336 image, patch_size=112 means 3x3 grid of patches.
+            image_tensor_cd = shuffle_patch_image(image_tensor, patch_size=args.patch_size, p=0.5, apply_transforms=args.apply_transforms) 
+        elif args.cd_mode == "flip_image": #perception only
+            image_tensor_cd = torch.flip(image_tensor, dims=[1,2]) #rotates the image by 180 degrees
+
         else:
             print("Not a valid cd_mode")
             exit(1)
-
+        
+        if line_counter % 100 == 0:
+            orig_img = tensor_to_img(image_tensor)
+            orig_img.save(f"/home/mt45dumo/runenv/{args.experiment_name}_shuffled_images/{line_counter}_orig.jpg")
+            img_cd = tensor_to_img(image_tensor_cd)
+            img_cd.save(f"/home/mt45dumo/runenv/{args.experiment_name}_shuffled_images/{line_counter}_shuffle.jpg")
         # stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
         # keywords = [stop_str]
         # stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
@@ -171,6 +185,9 @@ def eval_model(args):
                 images_cd=(image_tensor_cd.unsqueeze(0).half().to(model.device) if image_tensor_cd is not None else None),
                 cd_alpha = args.cd_alpha,
                 cd_beta = args.cd_beta,
+                tokenizer = tokenizer,
+                label = label,
+                experiment_name = args.experiment_name,
                 do_sample=True,
                 top_p=args.top_p,
                 top_k=args.top_k,
@@ -197,7 +214,7 @@ def eval_model(args):
             raw_image=raw_image, #previously images_cd_pil #[original-vs-noised-attention]: raw_image vs img_cd
             output_ids=output_ids.sequences,
             outputs_attentions=output_ids.attentions,
-            prefix=f"/home/mt45dumo/attention_maps_orig/qn_{line_counter}_" #[original-vs-noised-attention]: path
+            prefix=f"/home/mt45dumo/attention_maps_{args.experiment_name}/qn_{line_counter}_" #[original-vs-noised-attention]: path
         )
         
         outputs = tokenizer.batch_decode(
@@ -236,6 +253,8 @@ if __name__ == "__main__":
     parser.add_argument("--num-chunks", type=int, default=1)
     parser.add_argument("--chunk-idx", type=int, default=0)
     parser.add_argument("--temperature", type=float, default=0)
+    parser.add_argument("--patch_size", type=int, default=None, help="Size of patches to use when using shuffle_cd")
+    parser.add_argument("--apply_transforms", action='store_true', help="Apply random transformations to patches when using shuffle_cd", default=False)
     parser.add_argument("--top_p", type=float, default=1)
     parser.add_argument("--top_k", type=int, default=None)
     parser.add_argument("--max_new_tokens", type=int, default=2)
@@ -245,10 +264,11 @@ if __name__ == "__main__":
     parser.add_argument("--cd_beta", type=float, default=0.2)
     parser.add_argument("--quantized", action='store_true', help="Use 4 bit quantized model", default=False)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--experiment_name", type=str, default="default_experiment")
     args = parser.parse_args()
 
-    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd"]:
-        raise RuntimeError(f"Invalid cd_mode {args.cd_mode}, should be one of patched_cd, full_cd, no_cd")
+    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "shuffle_cd", "flip_image"]:
+        raise RuntimeError(f"Invalid cd_mode {args.cd_mode}, should be one of patched_cd, full_cd, no_cd, shuffle_cd, flip_image")
     elif args.cd_mode == "patched_cd":
         
         global bounding_boxes
@@ -258,6 +278,13 @@ if __name__ == "__main__":
             bounding_boxes = json.load(f)
         with open(args.image_qn_obj_map, 'r') as f:
             image_qn_obj_map = json.load(f)
+    
+    elif args.cd_mode == "shuffle_cd" or args.cd_mode == "flip_image":
+        if args.patch_size is None:
+            raise RuntimeError("Please provide patch_size for shuffle_cd mode")
+        
+    save_images_dir = Path(PROJECT_HOME) / "runenv" / f"{args.experiment_name}_images"
+    save_images_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Using cd_mode: {args.cd_mode}\n")
 
