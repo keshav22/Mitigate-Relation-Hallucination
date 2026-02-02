@@ -193,14 +193,22 @@ def eval_model(args):
         save_attention_maps(
             input_ids,
             tokenizer,
-            raw_image=raw_image, #previously images_cd_pil #[original-vs-noised-attention]: raw_image vs img_cd
-            output_ids=output_ids.sequences,
-            outputs_attentions=output_ids.attentions,
-            prefix=f"/home/nl97naca/attention_maps_orig/qn_{line_counter}_" #[original-vs-noised-attention]: path
+            raw_image=raw_image,
+            output_ids=output_ids.generation.sequences,
+            outputs_attentions=output_ids.generation.attentions,
+            prefix=f"/home/nl97naca/attention_maps_orig/qn_{line_counter}_"
+        )
+        save_attention_maps(
+            input_ids,
+            tokenizer,
+            raw_image=img_cd,
+            output_ids=output_ids.generation.sequences,
+            outputs_attentions=output_ids.attentions_cd,
+            prefix=f"/home/nl97naca/attention_maps_noised/qn_{line_counter}_"
         )
         
         outputs = tokenizer.batch_decode(
-            output_ids.sequences,
+            output_ids.generation.sequences,
             skip_special_tokens=True
         )[0].strip()
         print("output:", outputs)

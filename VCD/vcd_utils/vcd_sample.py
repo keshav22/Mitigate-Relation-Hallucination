@@ -1,4 +1,4 @@
-ENABLE_ATTENTION_MAP = False
+ENABLE_ATTENTION_MAP = True
 import copy
 import inspect
 import warnings
@@ -29,6 +29,12 @@ from llava.mm_utils import tokenizer_image_token, get_model_name_from_path
 from llava.conversation import conv_templates
 from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from llava.model.builder import load_pretrained_model
+
+from dataclasses import dataclass
+@dataclass
+class MyGenerationOutput:
+    generation: SampleDecoderOnlyOutput
+    attentions_cd: Optional[Tuple[torch.FloatTensor]] = None
 
 def get_input_ids():
         qs = "Are the signs far from the tractor in this photo? Please answer yes or no." #TODO is hardcoded
@@ -403,14 +409,18 @@ def sample(
             next_tokens = torch.multinomial(probs, num_samples=1).squeeze(1)
 
 
-
+        decoder_attentions_cd = ()
         # Store scores, attentions and hidden_states when required
         if return_dict_in_generate:
             if output_scores:
                 scores += (next_token_scores,)
             if output_attentions:
+                if use_cd:
+                    decoder_attentions_cd += (
+                        (outputs_cd.decoder_attentions,) if self.config.is_encoder_decoder else (outputs_cd.attentions,)
+                    )
                 decoder_attentions += (
-                    (outputs.decoder_attentions,) if self.config.is_encoder_decoder else (outputs.attentions,) #nico: [original-vs-noised-attention]: outputs vs outputs_cd
+                    (outputs.decoder_attentions,) if self.config.is_encoder_decoder else (outputs.attentions,)
                 )
                 if self.config.is_encoder_decoder:
                     cross_attentions += (outputs.cross_attentions,)
@@ -478,12 +488,15 @@ def sample(
                 decoder_hidden_states=decoder_hidden_states,
             )
         else:
-            return SampleDecoderOnlyOutput(
-                sequences=input_ids,
-                scores=scores,
-                attentions=decoder_attentions,
-                hidden_states=decoder_hidden_states,
-            )
+            return MyGenerationOutput(
+                    generation=SampleDecoderOnlyOutput(
+                        sequences=input_ids,
+                        scores=scores,
+                        attentions=decoder_attentions,
+                        hidden_states=decoder_hidden_states,
+                    ),
+                    attentions_cd=decoder_attentions_cd
+                )
     else:
         return input_ids
 
