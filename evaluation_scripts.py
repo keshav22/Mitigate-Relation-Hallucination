@@ -284,6 +284,10 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
     f1 = (2 * precision * recall) / (precision + recall) if precision is not None and recall is not None and (precision + recall) > 0 else None 
     correct = counts.get("TP", 0) + counts.get("TN", 0)
     incorrect = counts.get("FP", 0) + counts.get("FN", 0)
+    tp = counts.get("TP", 0)
+    fp = counts.get("FP", 0)
+    tn = counts.get("TN", 0)
+    fn = counts.get("FN", 0)
     pred_missing = counts.get("pred_missing_or_ambiguous_total", 0)
     pred_missing_yes = counts.get("pred_missing_or_ambiguous_label_yes", 0)
     pred_missing_no = counts.get("pred_missing_or_ambiguous_label_no", 0)
@@ -322,6 +326,10 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
         "hallucination_rate_over_all_lines": hallucination_rate_all,
         "ambiguous_gold_examples": sorted(ambiguous_gold_values),
         "ambiguous_pred_examples": sorted(ambiguous_pred_values),
+        "tp": tp,
+        "tn": tn,
+        "fp": fp,
+        "fn": fn,
     } if detailed_metrics else {
         "total_lines": total_lines,
         "evaluated_pairs": evaluated,
@@ -436,7 +444,7 @@ def main():
     p.add_argument("paths", nargs="*", help="path(s) to JSONL results file(s) or root directories")
     p.add_argument("--out", "-o", default=str(OUT_REPORT), help="output report JSON path")
     p.add_argument("--detailed_metrics", action="store_true", help="include detailed metrics in the output report")
-    p.add_argument("--model_path", help="path to the deberta or other eval model")
+    p.add_argument("--model_path", default="microsoft/deberta-v2-xlarge-mnli", help="path to the deberta or other eval model")
     args = p.parse_args()
     
     paths = []
