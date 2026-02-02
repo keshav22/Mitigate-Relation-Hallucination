@@ -163,17 +163,16 @@ def eval_model(args):
             #Patch_size here is basically how large each patch is. So for 336x336 image, patch_size=112 means 3x3 grid of patches.
             image_tensor_cd = shuffle_patch_image(image_tensor, patch_size=args.patch_size, p=0.5, apply_transforms=args.apply_transforms) 
         elif args.cd_mode == "flip_image": #perception only
-            image_tensor_cd = torch.flip(image_tensor, dims=[1,2]) #rotates the image by 180 degrees
-
+            image_tensor_cd = torch.flip(image_tensor, dims=[2]) #flip along width dimension  
         else:
             print("Not a valid cd_mode")
             exit(1)
         
         if line_counter % 100 == 0:
             orig_img = tensor_to_img(image_tensor)
-            orig_img.save(f"/home/mt45dumo/runenv/{args.experiment_name}_shuffled_images/{line_counter}_orig.jpg")
+            orig_img.save(f"/home/mt45dumo/runenv/{args.experiment_name}_images/{line_counter}_orig.jpg")
             img_cd = tensor_to_img(image_tensor_cd)
-            img_cd.save(f"/home/mt45dumo/runenv/{args.experiment_name}_shuffled_images/{line_counter}_shuffle.jpg")
+            img_cd.save(f"/home/mt45dumo/runenv/{args.experiment_name}_images/{line_counter}_shuffle.jpg")
         # stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
         # keywords = [stop_str]
         # stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
@@ -279,7 +278,7 @@ if __name__ == "__main__":
         with open(args.image_qn_obj_map, 'r') as f:
             image_qn_obj_map = json.load(f)
     
-    elif args.cd_mode == "shuffle_cd" or args.cd_mode == "flip_image":
+    elif args.cd_mode == "shuffle_cd":
         if args.patch_size is None:
             raise RuntimeError("Please provide patch_size for shuffle_cd mode")
         
