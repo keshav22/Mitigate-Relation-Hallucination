@@ -25,21 +25,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch
-from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling, save_attention_maps
-# from PIL import ImageDraw
+from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling
+from PIL import ImageDraw
 
-import numpy as np
-import matplotlib.pyplot as plt
 
-def tensor_to_img(tensor):
-    img = tensor.numpy()
-    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
-    std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
-    unnorm = tensor * std + mean
-    img = unnorm.clamp(0, 1)           # just in case
-    img = img.permute(1, 2, 0)         # CHW → HWC
-    img = (img * 255).byte().numpy()   # scale and convert
-    return Image.fromarray(img)
 
 def get_path(image_id, image_folder):
     Image_path1 = os.path.join(image_folder, 'VG_100K')
@@ -83,7 +72,7 @@ def eval_model(args):
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
     ans_file = open(answers_file, "w")
-    line_counter = 1
+    # line_counter = 1
     for line in tqdm(questions):
         image_file = line["image_id"] + ".jpg"
         image_path = get_path(line["image_id"], args.image_folder)
@@ -107,10 +96,8 @@ def eval_model(args):
         input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(model.device)
 
         image = Image.open(image_path).convert("RGB")
-
-        #image_tensor = image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
-        image_tensor = process_images([image], image_processor, model.config)
-        image_tensor = image_tensor[0] #we only got a single image. and add_noise_patch expects this format.
+        image_tensor = process_images([image], image_processor, model.config)[0]
+        #image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
         
         if args.cd_mode == "patched_cd":
             img_id = line["image_id"]
@@ -120,7 +107,7 @@ def eval_model(args):
                 raise RuntimeError(f"No objects found for image ID {img_id}, cannot add noise")
             objects_in_question = image_qn_obj_map[img_id][line["query_prompt"]]
             prev_shape = image.size
-            new_shape = image_tensor.shape[-2:][::-1] # always 336 x 336 #nico: then why flip sizes using [::-1]?
+            new_shape = image_tensor.shape[-2:][::-1] # always 336 x 336
             y_padding = 0
             x_padding = 0
             if prev_shape[0] > prev_shape[1]:
@@ -137,33 +124,110 @@ def eval_model(args):
             new_bounding_box["h"] = int(old_bounding_box["h"] * xy_scaling)
 
             # # Convert tensor back to PIL Image for drawing
-            # image_draw = tensor_to_img(image_tensor)
+            # img = image_tensor.numpy()
+            # mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+            # std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+            # unnorm = image_tensor * std + mean
+            # img = unnorm.clamp(0, 1)           # just in case
+            # img = img.permute(1, 2, 0)         # CHW → HWC
+            # img = (img * 255).byte().numpy()   # scale and convert
+            # image_draw = Image.fromarray(img)
             # draw = ImageDraw.Draw(image_draw)
             # bb = new_bounding_box
             # bbox_coords = [bb["x"], bb["y"], bb["x"] + bb["w"], bb["y"] + bb["h"]]
             # draw.rectangle(bbox_coords, outline="red", width=2)
             
-            # image_draw.save(f"/home/nl97naca/new_BB_images/{line_counter}_bb.jpg")
+            # image_draw.save(f"/work/scratch/kurse/kurs00097/mt45dumo/new_BB_images/{line_counter}_bb.jpg")
             
-            # Same for CD image
             
             image_tensor_cd = add_noise_patch(image_tensor, args.noise_step, new_bounding_box)
+        
+        elif args.cd_mode == "dino_cd":
+            img_id = line["image_id"]
 
-            img_cd = tensor_to_img(image_tensor_cd)
-            img_cd.save(f"/home/nl97naca/patched_images/{line_counter}.jpg")
+            if img_id not in gdino_boxes:
+                print(f"No GroundingDINO detections for {img_id}, using full CD fallback")
+                image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
+            else:
+                detections = gdino_boxes[img_id]
+                if len(detections) !=0 and args.noise_target_mode == "single":
+                    detections = [max(detections, key=lambda d: d["score"])]
+
+                orig_tensor = image_tensor.clone()
+                image_tensor_cd = orig_tensor.clone()
+                model_size = image_tensor.shape[-1]
+                
+                # Store scaled bounding boxes for drawing
+                scaled_bbs = []
+
+                for det in detections:
+                    orig_w = det["img_w"]
+                    orig_h = det["img_h"]
+                    x, y, w, h = det["x"], det["y"], det["w"], det["h"]
+
+                    # Padding for square resize
+                    x_pad = y_pad = 0
+                    if orig_w > orig_h:
+                        y_pad = (orig_w - orig_h) / 2
+                    else:
+                        x_pad = (orig_h - orig_w) / 2
+
+                    scale = model_size / max(orig_w, orig_h)
+
+                    bb = {
+                        "x": int((x + x_pad) * scale),
+                        "y": int((y + y_pad) * scale),
+                        "w": int(w * scale),
+                        "h": int(h * scale),
+                    }
+
+                    bb["x"] = max(0, min(bb["x"], model_size - 1))
+                    bb["y"] = max(0, min(bb["y"], model_size - 1))
+                    bb["w"] = max(1, min(bb["w"], model_size))
+                    bb["h"] = max(1, min(bb["h"], model_size))
+
+                    # Apply noise to this bounding box
+                    image_tensor_cd = add_noise_patch(
+                        image_tensor_cd,
+                        args.noise_step,
+                        bb
+                    )
+                    
+                    # Store the scaled bounding box for drawing
+                    scaled_bbs.append(bb)
+
+                debug_dir = args.debug_dir
+                os.makedirs(debug_dir, exist_ok=True)
+
+                mean = torch.tensor([0.485, 0.456, 0.406], device=image_tensor_cd.device).view(3, 1, 1)
+                std = torch.tensor([0.229, 0.224, 0.225], device=image_tensor_cd.device).view(3, 1, 1)
+
+                img = image_tensor_cd * std + mean
+                img = img.clamp(0, 1)
+                img = (img.permute(1, 2, 0) * 255).byte().cpu().numpy()
+
+                noisy_img = Image.fromarray(img)
+                draw = ImageDraw.Draw(noisy_img)
+
+                # Draw using the SCALED bounding boxes (not the original detections)
+                for bb in scaled_bbs:
+                    draw.rectangle(
+                        [bb["x"], bb["y"], bb["x"] + bb["w"], bb["y"] + bb["h"]],
+                        outline="red",
+                        width=3
+                    )
+
+                noisy_img.save(f"{debug_dir}/{img_id}_noise.jpg")
 
         elif args.cd_mode == "full_cd":
             image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
-        elif args.cd_mode == "no_cd":
-            image_tensor_cd = None
         else:
-            print("Not a valid cd_mode")
-            exit(1)
+            image_tensor_cd = None      
 
         # stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
         # keywords = [stop_str]
         # stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
-        
+
         with torch.inference_mode():
             output_ids = model.generate(
                 input_ids,
@@ -177,34 +241,11 @@ def eval_model(args):
                 temperature=args.temperature,
                 max_new_tokens=args.max_new_tokens,
                 use_cache=True,
-                return_dict_in_generate=True,
-                output_scores=True,
-                output_attentions=True
-            )
-        
-        images_cd = (image_tensor_cd.detach().clone().unsqueeze(0).half().to(model.device) if image_tensor_cd is not None else None)
-        if images_cd.dim() == 4:
-            images_cd = images_cd.squeeze(0)  # (C, H, W)
-        # Convert (C,H,W) -> (H,W,C) and to uint8
-        images_cd_np = images_cd.permute(1, 2, 0).cpu().numpy()
-        images_cd_np = (images_cd_np * 255).clip(0, 255).astype(np.uint8)
-        images_cd_pil = Image.fromarray(images_cd_np)
-        
-        raw_image = tensor_to_img(image_tensor)
-        save_attention_maps(
-            input_ids,
-            tokenizer,
-            raw_image=raw_image, #previously images_cd_pil #[original-vs-noised-attention]: raw_image vs img_cd
-            output_ids=output_ids.sequences,
-            outputs_attentions=output_ids.attentions,
-            prefix=f"/home/nl97naca/attention_maps_orig/qn_{line_counter}_" #[original-vs-noised-attention]: path
-        )
-        
+                output_scores=True)
+
         outputs = tokenizer.batch_decode(
-            output_ids.sequences,
-            skip_special_tokens=True
+            output_ids, skip_special_tokens=True
         )[0].strip()
-        print("output:", outputs)
         mllm = args.model_path.split('/')[-1]
         ans_file.write(
             json.dumps(
@@ -213,14 +254,13 @@ def eval_model(args):
                     "query_prompt": cur_prompt,
                     "response": outputs,
                     "label": label,
-                    "relation_type": line["type"],
+                    "relation_type": line["relation_type"],
                     "mllm_name": mllm
                 }
             )
             + "\n"
         )
         ans_file.flush()
-        line_counter += 1
     ans_file.close()
 
 if __name__ == "__main__":
@@ -241,13 +281,16 @@ if __name__ == "__main__":
     parser.add_argument("--max_new_tokens", type=int, default=2)
     parser.add_argument("--noise_step", type=int, default=500)
     parser.add_argument("--cd_mode", type=str, default="no_cd")
+    parser.add_argument("--gdino_jsonl", type=str, required=True)
     parser.add_argument("--cd_alpha", type=float, default=1)
     parser.add_argument("--cd_beta", type=float, default=0.2)
     parser.add_argument("--quantized", action='store_true', help="Use 4 bit quantized model", default=False)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--noise_target_mode", type=str)
+    parser.add_argument("--debug_dir", type=str)
     args = parser.parse_args()
 
-    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd"]:
+    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "dino_cd"]:
         raise RuntimeError(f"Invalid cd_mode {args.cd_mode}, should be one of patched_cd, full_cd, no_cd")
     elif args.cd_mode == "patched_cd":
         
@@ -258,6 +301,18 @@ if __name__ == "__main__":
             bounding_boxes = json.load(f)
         with open(args.image_qn_obj_map, 'r') as f:
             image_qn_obj_map = json.load(f)
+    elif args.cd_mode == "dino_cd":
+        # Load GroundingDINO detections
+        with open(args.gdino_jsonl, "r") as f:
+            gdino_lines = [json.loads(l) for l in f]
+
+        gdino_boxes = {}
+        for item in gdino_lines:
+            image_id = item["image_id"]
+            detections = item.get("detections", [])
+            if not detections:
+                continue
+            gdino_boxes[image_id] = detections
 
     print(f"Using cd_mode: {args.cd_mode}\n")
 
