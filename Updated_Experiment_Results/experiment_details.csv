@@ -1,5 +1,6 @@
 model_name,num_params,quantization,mitigation_technique,result_path,apha,layer_lambda,layer,threshold,temperature,conv_mode,max_new_tokens,seed,cd_alpha,cd_beta,cd_mode,top_p,top_k,dtype
 LLAVA,13B,None,DTC,Updated_Experiment_Results/DTC_13B,0.1,2,None,0.9,0,vicuna_v1,2,42,None,None,None,None,None,
-LLAVA,13B,None,VCD,Updated_Experiment_Results/VCD_Vanilla_LLAVA,None,None,None,None,1,,2,42,1,0.2,full_cd,1,1,
-LLAVA,13B,None,VCD_Shuffle_Patch,Updated_Experiment_Results/LLAVA_Shuffle_patch_ablations,None,None,None,None,1,,2,42,1,0.2,shuffle_cd,1,1,
-LLAVA,13B,None,VCD_Groundtruth_Patch,Updated_Experiment_Results/VCD_LLAVA_VG_Groundtruth_patches,None,None,None,None,1,,2,42,1,0.2,patched_cd,1,1,
+LLAVA,13B,None,VCD,Updated_Experiment_Results/VCD_Vanilla_LLAVA,None,None,None,None,1,vicuna_v2,2,42,1,0.2,full_cd,1,1,
+LLAVA,13B,None,VCD_Shuffle_Patch,Updated_Experiment_Results/LLAVA_Shuffle_patch_ablations,None,None,None,None,1,vicuna_v3,2,42,1,0.2,shuffle_cd,1,1,
+LLAVA,13B,None,VCD_Groundtruth_Patch,Updated_Experiment_Results/VCD_LLAVA_VG_Groundtruth_patches,None,None,None,None,1,vicuna_v4,2,42,1,0.2,patched_cd,1,1,
+LLAVA,13B,None,BASE MODEL,Updated_Experiment_Results/13B_noDTC,None,None,None,None,0,vicuna_v5,2,42,None,None,None,None,None,
