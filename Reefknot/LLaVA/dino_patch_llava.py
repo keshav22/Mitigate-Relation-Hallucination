@@ -89,7 +89,7 @@ def eval_model(args):
             qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
 
         conv = conv_templates[args.conv_mode].copy()
-        conv.append_message(conv.roles[0], qs + " Please answer this question with one word.")
+        conv.append_message(conv.roles[0], qs)
         conv.append_message(conv.roles[1], None)
         prompt = conv.get_prompt()
 
@@ -146,14 +146,15 @@ def eval_model(args):
             img_id = line["image_id"]
 
             if img_id not in gdino_boxes:
-                print(f"No GroundingDINO boxes for {img_id}, skipping CD")
-                image_tensor_cd = None
+                print(f"No GroundingDINO detections for {img_id}, using full CD fallback")
+                image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
             else:
                 detections = gdino_boxes[img_id]
+                if len(detections) !=0 and args.noise_target_mode == "single":
+                    detections = [max(detections, key=lambda d: d["score"])]
 
                 orig_tensor = image_tensor.clone()
                 image_tensor_cd = orig_tensor.clone()
-
                 model_size = image_tensor.shape[-1]
                 
                 # Store scaled bounding boxes for drawing
@@ -195,7 +196,7 @@ def eval_model(args):
                     # Store the scaled bounding box for drawing
                     scaled_bbs.append(bb)
 
-                debug_dir = "/work/scratch/kurse/kurs00097/as37puta/dino_vqa_noised_multi"
+                debug_dir = args.debug_dir
                 os.makedirs(debug_dir, exist_ok=True)
 
                 mean = torch.tensor([0.485, 0.456, 0.406], device=image_tensor_cd.device).view(3, 1, 1)
@@ -285,6 +286,8 @@ if __name__ == "__main__":
     parser.add_argument("--cd_beta", type=float, default=0.2)
     parser.add_argument("--quantized", action='store_true', help="Use 4 bit quantized model", default=False)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--noise_target_mode", type=str)
+    parser.add_argument("--debug_dir", type=str)
     args = parser.parse_args()
 
     if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "dino_cd"]:
