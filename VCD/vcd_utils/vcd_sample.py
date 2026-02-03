@@ -1,4 +1,4 @@
-ENABLE_ATTENTION_MAP = True
+ENABLE_ATTENTION_MAP = False
 import copy
 import inspect
 import warnings
@@ -200,6 +200,8 @@ def _save_token_distribution(logits: torch.Tensor, output_folder: str, label: st
         label: Label for this set of tokens (e.g., "next_token_logits" or "next_token_logits_cd")
         k: Number of top tokens to extract for console output only
     """
+    return #disable
+
     # Move to CPU for processing
     logits = logits.cpu()
     
