@@ -19,7 +19,7 @@ Assumes JSON files are named with 'yesno' or 'vqa' or 'multichoice' in the filen
 
 # configurable defaults
 DEFAULT_PATH = Path("Experiment_Results/DTC_Quantized_7B/YesNo_results.jsonl")
-OUT_REPORT = Path("yesno_evaluation_report.json")
+OUT_REPORT = Path("evaluation_report.json")
 
 YES_TERMS = {"yes", "y"}
 NO_TERMS = {"no", "n"}
@@ -473,10 +473,10 @@ def main():
         
         if "vqa" in stem:
             result = evaluate_vqa(path, args.model_path)
-        elif "multichoice" in stem:
+        elif "multichoice" in stem or "mcq" in stem:
             #ToDo : handle MCQ lines where response is not a letter A-D and instead whole words.
             result = evaluate_mcq_choice(path, args.detailed_metrics)
-        elif "yes" in stem or "no" in stem:
+        elif "yes" in stem:
             result = evaluate_yesno(path, args.detailed_metrics)
         else:
             print(f"Skipping unrecognized file (not YesNo or Multichoice or VQA): {path}")
