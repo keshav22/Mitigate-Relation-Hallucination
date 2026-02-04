@@ -154,6 +154,67 @@ def eval_model(args):
 
             img_cd = tensor_to_img(image_tensor_cd)
             # img_cd.save(f"/home/nl97naca/patched_images/{line_counter}.jpg")
+        
+        elif args.cd_mode == "dino_cd" or args.cd_mode == "dino_without_noise_cd":
+            img_id = line["image_id"]
+            if img_id not in gdino_boxes:
+                print(f"No GroundingDINO detections for {img_id}, using full CD fallback")
+                image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
+            else:
+                detections = gdino_boxes[img_id]
+                if len(detections) !=0 and args.noise_target_mode == "single":
+                    detections = [max(detections, key=lambda d: d["score"])]
+                image_tensor_cd = image_tensor.clone()
+                model_size = image_tensor.shape[-1]
+                # Store scaled bounding boxes for drawing
+                scaled_bbs = []
+                for det in detections:
+                    orig_w = det["img_w"]
+                    orig_h = det["img_h"]
+                    x, y, w, h = det["x"], det["y"], det["w"], det["h"]
+                    # Padding for square resize
+                    x_pad = y_pad = 0
+                    if orig_w > orig_h:
+                        y_pad = (orig_w - orig_h) / 2
+                    else:
+                        x_pad = (orig_h - orig_w) / 2
+                    scale = model_size / max(orig_w, orig_h)
+                    bb = {
+                        "x": int((x + x_pad) * scale),
+                        "y": int((y + y_pad) * scale),
+                        "w": int(w * scale),
+                        "h": int(h * scale),
+                    }
+                    bb["x"] = max(0, min(bb["x"], model_size - 1))
+                    bb["y"] = max(0, min(bb["y"], model_size - 1))
+                    bb["w"] = max(1, min(bb["w"], model_size))
+                    bb["h"] = max(1, min(bb["h"], model_size))
+                    # Apply noise to this bounding box
+                    
+                    image_tensor_cd = add_noise_patch(
+                        image_tensor_cd,
+                        args.noise_step,
+                        bb
+                    )
+                    # Store the scaled bounding box for drawing
+                    scaled_bbs.append(bb)
+                debug_dir = f"/home/mt45dumo/runenv/{args.experiment_name}_images"
+                mean = torch.tensor([0.485, 0.456, 0.406], device=image_tensor_cd.device).view(3, 1, 1)
+                std = torch.tensor([0.229, 0.224, 0.225], device=image_tensor_cd.device).view(3, 1, 1)
+                img = image_tensor_cd * std + mean
+                img = img.clamp(0, 1)
+                img = (img.permute(1, 2, 0) * 255).byte().cpu().numpy()
+                noisy_img = Image.fromarray(img)
+                draw = ImageDraw.Draw(noisy_img)
+                # Draw using the SCALED bounding boxes (not the original detections)
+                for bb in scaled_bbs:
+                    draw.rectangle(
+                        [bb["x"], bb["y"], bb["x"] + bb["w"], bb["y"] + bb["h"]],
+                        outline="red",
+                        width=3
+                    )
+                if line_counter % 100 == 0:
+                    noisy_img.save(f"{debug_dir}/{line_counter}_noise_BB.jpg")
 
         elif args.cd_mode == "full_cd":
             image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
@@ -258,16 +319,18 @@ if __name__ == "__main__":
     parser.add_argument("--top_k", type=int, default=None)
     parser.add_argument("--max_new_tokens", type=int, default=2)
     parser.add_argument("--noise_step", type=int, default=500)
-    parser.add_argument("--cd_mode", type=str, default="no_cd")
+    parser.add_argument("--cd_mode", type=str, default=None)
     parser.add_argument("--cd_alpha", type=float, default=1)
     parser.add_argument("--cd_beta", type=float, default=0.2)
+    parser.add_argument("--gdino_jsonl", type=str, default=None)
     parser.add_argument("--quantized", action='store_true', help="Use 4 bit quantized model", default=False)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--noise_target_mode", type=str, default=None)
     parser.add_argument("--experiment_name", type=str, default="default_experiment")
     args = parser.parse_args()
 
-    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "shuffle_cd", "flip_image"]:
-        raise RuntimeError(f"Invalid cd_mode {args.cd_mode}, should be one of patched_cd, full_cd, no_cd, shuffle_cd, flip_image")
+    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "shuffle_cd", "flip_image","dino_cd"]:
+        raise RuntimeError(f"Invalid cd_mode {args.cd_mode}, should be one of patched_cd, full_cd, no_cd, shuffle_cd, flip_image, dino_cd")
     elif args.cd_mode == "patched_cd":
         
         global bounding_boxes
@@ -281,6 +344,20 @@ if __name__ == "__main__":
     elif args.cd_mode == "shuffle_cd":
         if args.patch_size is None:
             raise RuntimeError("Please provide patch_size for shuffle_cd mode")
+
+    elif args.cd_mode == "dino_cd":
+        assert args.noise_target_mode in ["single", "multiple"], "noise_target_mode must be provided"
+        assert args.gdino_jsonl is not None, "Please provide gdino_jsonl file with GroundingDINO detections"
+        # Load GroundingDINO detections
+        with open(args.gdino_jsonl, "r") as f:
+            gdino_lines = [json.loads(l) for l in f]
+        gdino_boxes = {}
+        for item in gdino_lines:
+            image_id = item["image_id"]
+            detections = item.get("detections", [])
+            if not detections:
+                continue
+            gdino_boxes[image_id] = detections
         
     save_images_dir = Path(PROJECT_HOME) / "runenv" / f"{args.experiment_name}_images"
     save_images_dir.mkdir(parents=True, exist_ok=True)
