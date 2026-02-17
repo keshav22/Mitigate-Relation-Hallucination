@@ -144,6 +144,10 @@ def eval_model(args):
 
         image = Image.open(image_path).convert("RGB")
         image_tensor = process_images([image], image_processor, model.config)[0]
+        yes_prob = getattr(model, "dtc_first_yes_prob", None)
+        no_prob  = getattr(model, "dtc_first_no_prob", None)
+        entropy = getattr(model, "dtc_first_entropy", None)
+
 
         with torch.inference_mode():
             if args.enable_dtc:
@@ -186,7 +190,10 @@ def eval_model(args):
                     "query_prompt": cur_prompt,
                     "response": outputs,
                     "label": label,
-                    "mllm_name": mllm
+                    "mllm_name": mllm,
+                    "yes_prob": yes_prob,
+                    "no_prob": no_prob, 
+                    "entropy": entropy
                 }
             )
             + "\n"
