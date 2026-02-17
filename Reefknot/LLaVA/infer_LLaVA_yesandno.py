@@ -176,6 +176,7 @@ def eval_model(args):
                     "image_id": line["image_id"],
                     "query_prompt": cur_prompt,
                     "response": outputs,
+                    "relation_type": line["relation_type"],
                     "entropy": entropy if args.enable_dtc else None,
                     "label": label,
                     "mllm_name": mllm
