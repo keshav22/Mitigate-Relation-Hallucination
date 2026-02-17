@@ -28,9 +28,12 @@ from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch
 from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling, save_attention_maps
 from attention_visualise_lvlm import AttentionVisualizer
 from PIL import ImageDraw
-
+from Utils.utils import shuffle_patch_image
 import numpy as np
+from pathlib import Path
 import matplotlib.pyplot as plt
+
+PROJECT_HOME = "/home/mt45dumo"
 
 def tensor_to_img(tensor):
     img = tensor.numpy()
@@ -57,7 +60,7 @@ def get_path(image_id, image_folder):
     else:
         print('Cannot find image {}.jpg'.format(image_id))
         return None
-    
+
 def split_list(lst, n):
     """Split a list into n (roughly) equal-sized chunks"""
     chunk_size = math.ceil(len(lst) / n)  # integer division
@@ -111,7 +114,7 @@ def eval_model(args):
         #image_tensor = image_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
         image_tensor = process_images([image], image_processor, model.config)
         image_tensor = image_tensor[0] #we only got a single image. and add_noise_patch expects this format.
-        
+
         attn_bbs = []
         if args.cd_mode == "patched_cd":
             img_id = line["image_id"]
@@ -143,15 +146,15 @@ def eval_model(args):
             # bb = new_bounding_box
             # bbox_coords = [bb["x"], bb["y"], bb["x"] + bb["w"], bb["y"] + bb["h"]]
             # draw.rectangle(bbox_coords, outline="red", width=2)
-            
-            # image_draw.save(f"/home/nl97naca/new_BB_images/{line_counter}_bb.jpg")
-            
+
+            # image_draw.save(f"/home/mt45dumo/runenv/bb_images/{line_counter}_bb.jpg")
+
             # Same for CD image
-            
+
             image_tensor_cd = add_noise_patch(image_tensor, args.noise_step, new_bounding_box)
 
             img_cd = tensor_to_img(image_tensor_cd)
-            img_cd.save(f"/home/nl97naca/patched_images/{line_counter}.jpg")
+            # img_cd.save(f"/home/nl97naca/patched_images/{line_counter}.jpg")
         elif args.cd_mode == "dino_cd":
             img_id = line["image_id"]
 
@@ -166,7 +169,7 @@ def eval_model(args):
                 orig_tensor = image_tensor.clone()
                 image_tensor_cd = orig_tensor.clone()
                 model_size = image_tensor.shape[-1]
-                
+
                 # Store scaled bounding boxes for drawing
                 scaled_bbs = []
 
@@ -202,7 +205,7 @@ def eval_model(args):
                         args.noise_step,
                         bb
                     )
-                    
+
                     # Store the scaled bounding box for drawing
                     scaled_bbs.append(bb)
                 attn_bbs = scaled_bbs
@@ -233,14 +236,25 @@ def eval_model(args):
             image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
         elif args.cd_mode == "no_cd":
             image_tensor_cd = None
+        elif args.cd_mode == "shuffle_cd":
+            #Patch_size here is basically how large each patch is. So for 336x336 image, patch_size=112 means 3x3 grid of patches.
+            image_tensor_cd = shuffle_patch_image(image_tensor, patch_size=args.patch_size, p=0.5, apply_transforms=args.apply_transforms)
+        elif args.cd_mode == "flip_image": #perception only
+            image_tensor_cd = torch.flip(image_tensor, dims=[1,2]) #rotates the image by 180 degrees
+
         else:
             print("Not a valid cd_mode")
             exit(1)
 
+        if line_counter % 100 == 0:
+            orig_img = tensor_to_img(image_tensor)
+            orig_img.save(f"/home/mt45dumo/runenv/{args.experiment_name}_shuffled_images/{line_counter}_orig.jpg")
+            img_cd = tensor_to_img(image_tensor_cd)
+            img_cd.save(f"/home/mt45dumo/runenv/{args.experiment_name}_shuffled_images/{line_counter}_shuffle.jpg")
         # stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
         # keywords = [stop_str]
         # stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
-        
+
         with torch.inference_mode():
             output_ids = model.generate(
                 input_ids,
@@ -248,6 +262,9 @@ def eval_model(args):
                 images_cd=(image_tensor_cd.unsqueeze(0).half().to(model.device) if image_tensor_cd is not None else None),
                 cd_alpha = args.cd_alpha,
                 cd_beta = args.cd_beta,
+                tokenizer = tokenizer,
+                label = label,
+                experiment_name = args.experiment_name,
                 do_sample=True,
                 top_p=args.top_p,
                 top_k=args.top_k,
@@ -258,7 +275,7 @@ def eval_model(args):
                 output_scores=True,
                 output_attentions=True
             )
-        
+
         images_cd = (image_tensor_cd.detach().clone().unsqueeze(0).half().to(model.device) if image_tensor_cd is not None else None)
         if images_cd.dim() == 4:
             images_cd = images_cd.squeeze(0)  # (C, H, W)
@@ -266,10 +283,10 @@ def eval_model(args):
         images_cd_np = images_cd.permute(1, 2, 0).cpu().numpy()
         images_cd_np = (images_cd_np * 255).clip(0, 255).astype(np.uint8)
         images_cd_pil = Image.fromarray(images_cd_np)
-        
+
         raw_image = tensor_to_img(image_tensor)
         img_cd = tensor_to_img(image_tensor_cd)
-        
+
         save_attention_maps(
             input_ids,
             tokenizer,
@@ -284,7 +301,7 @@ def eval_model(args):
             raw_image=img_cd,
             output_ids=output_ids.generation.sequences,
             outputs_attentions=output_ids.attentions_cd,
-            prefix=f"/home/nl97naca/attention_maps_noised/qn_{line_counter}_"
+            prefix=f"/home/nl97naca/attention_maps_{args.experiment_name}/qn_{line_counter}_"
         )
 
         layer_count = 18
@@ -321,7 +338,7 @@ def eval_model(args):
                         )
         attention_visualizer_noise_image.visualise_layer_attention_heatmap(use_layer_count=layer_count)
         attn_metric_noised = attention_visualizer_noise_image.get_attention_metric(layer_start=layer_start, layer_end=layer_end)
-        
+
         outputs = tokenizer.batch_decode(
             output_ids.generation.sequences,
             skip_special_tokens=True
@@ -360,6 +377,8 @@ if __name__ == "__main__":
     parser.add_argument("--num-chunks", type=int, default=1)
     parser.add_argument("--chunk-idx", type=int, default=0)
     parser.add_argument("--temperature", type=float, default=0)
+    parser.add_argument("--patch_size", type=int, default=None, help="Size of patches to use when using shuffle_cd")
+    parser.add_argument("--apply_transforms", action='store_true', help="Apply random transformations to patches when using shuffle_cd", default=False)
     parser.add_argument("--top_p", type=float, default=1)
     parser.add_argument("--top_k", type=int, default=None)
     parser.add_argument("--max_new_tokens", type=int, default=2)
@@ -372,12 +391,13 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--noise_target_mode", type=str, default="single")
     parser.add_argument("--debug_dir", type=str)
+    parser.add_argument("--experiment_name", type=str, default="default_experiment")
     args = parser.parse_args()
 
-    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "dino_cd"]:
-        raise RuntimeError(f"Invalid cd_mode {args.cd_mode}, should be one of patched_cd, full_cd, no_cd")
+    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "dino_cd", "shuffle_cd", "flip_image"]:
+        raise RuntimeError(f"Invalid cd_mode {args.cd_mode}, should be one of patched_cd, full_cd, no_cd, shuffle_cd, flip_image")
     elif args.cd_mode == "patched_cd":
-        
+
         global bounding_boxes
         global image_qn_obj_map
 
@@ -398,11 +418,18 @@ if __name__ == "__main__":
                 continue
             gdino_boxes[image_id] = detections
 
+    elif args.cd_mode == "shuffle_cd" or args.cd_mode == "flip_image":
+        if args.patch_size is None:
+            raise RuntimeError("Please provide patch_size for shuffle_cd mode")
+
+    save_images_dir = Path(PROJECT_HOME) / "runenv" / f"{args.experiment_name}_images"
+    save_images_dir.mkdir(parents=True, exist_ok=True)
+
     print(f"Using cd_mode: {args.cd_mode}\n")
 
 
     enable_full_determinism(seed=args.seed)
-    set_seed(args.seed)                
+    set_seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
     np.random.seed(args.seed)
