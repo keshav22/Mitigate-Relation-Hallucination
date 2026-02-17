@@ -1,0 +1,74 @@
+{
+    "file": "/kaggle/working/Mitigate-Relation-Hallucination/Experiment_Results/DTC_13B/llava13b_VQA_DTC_20T_results.jsonl",
+    "title": "llava13b_VQA_DTC_20T_results",
+    "summary": {
+      "hallucination_rate_over_all": 0.5195071868583162,
+      "hallucination_rate_perception": 0.48930232558139536,
+      "hallucination_rate_cognitive": 0.5433823529411764
+    },
+    "counts": {
+      "perception": 2150,
+      "equivalent": 2340,
+      "perception_equivalent": 1098,
+      "different": 2530,
+      "perception_different": 1052,
+      "cognitive": 2720,
+      "cognitive_equivalent": 1242,
+      "cognitive_different": 1478
+    }
+}
+
+{
+"file": "llava13b_Multichoice_DTC_5T_results.jsonl",
+"title": "llava13b_Multichoice_DTC_5T_results",
+"summary": {
+"total_lines": 6950,
+"evaluated_lines": 6947,
+"accuracy_over_all_lines": 0.6149640287769784,
+"accuracy_over_evaluated_lines": 0.6152295955088527,
+"hallucination_rate_over_all_lines": 0.3850359712230216,
+"hallucination_rate_over_evaluated_lines": 0.3847704044911473,
+"macro_precision": 0.6949672902962467,
+"macro_recall": 0.6118911859836887,
+"macro_f1": 0.6043663332853727,
+"per_class_mcq": {
+  "a": {
+    "precision": 0.7042682926829268,
+    "recall": 0.6657060518731989,
+    "f1": 0.6844444444444444
+  },
+  "b": {
+    "precision": 0.8801652892561983,
+    "recall": 0.38126491646778043,
+    "f1": 0.5320566194837635
+  },
+  "c": {
+    "precision": 0.7111882046834345,
+    "recall": 0.4659090909090909,
+    "f1": 0.5629934775145897
+  },
+  "d": {
+    "precision": 0.48424737456242706,
+    "recall": 0.9346846846846847,
+    "f1": 0.6379707916986933
+  }
+},
+"accuracy_by_type": {
+  "cognitive": 0.7083593912862206,
+  "perception": 0.40744186046511627,
+  "unknown": null
+},
+"hallucination_rate_by_type": {
+  "cognitive": 0.2916406087137794,
+  "perception": 0.5925581395348838,
+  "unknown": null
+},
+"parse_errors_label": 0,
+"parse_errors_response": 3,
+"ambiguous_responses": [
+  "In the photo, the",
+  "In the photo, there",
+  "There is no relation between"
+]
+}
+}

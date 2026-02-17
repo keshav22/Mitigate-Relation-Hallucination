@@ -1,0 +1,224 @@
+{
+    "file": "llava_13b_dino500_mcq_single.jsonl",
+    "title": "llava_13b_dino500_mcq_single",
+    "summary": {
+      "total_lines": 6950,
+      "evaluated_lines": 6943,
+      "accuracy_over_all_lines": 0.6192805755395684,
+      "accuracy_over_evaluated_lines": 0.6199049402275674,
+      "hallucination_rate_over_all_lines": 0.3807194244604316,
+      "hallucination_rate_over_evaluated_lines": 0.38009505977243263,
+      "macro_precision": 0.6939872589177613,
+      "macro_recall": 0.616659360023343,
+      "macro_f1": 0.6108687627879608,
+      "per_class_mcq": {
+        "a": {
+          "precision": 0.7091020910209103,
+          "recall": 0.6649365628604383,
+          "f1": 0.6863095238095238
+        },
+        "b": {
+          "precision": 0.8664072632944229,
+          "recall": 0.39904420549581837,
+          "f1": 0.5464212678936605
+        },
+        "c": {
+          "precision": 0.712468193384224,
+          "recall": 0.47754405912450254,
+          "f1": 0.5718175629680055
+        },
+        "d": {
+          "precision": 0.487971487971488,
+          "recall": 0.9251126126126126,
+          "f1": 0.6389266964806534
+        }
+      },
+      "accuracy_by_type": {
+        "cognitive": 0.7156269559774672,
+        "perception": 0.40651162790697676,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.28437304402253283,
+        "perception": 0.5934883720930233,
+        "unknown": null
+      },
+      "parse_errors_label": 0,
+      "parse_errors_response": 7,
+      "ambiguous_responses": [
+        "In the image, the",
+        "In the photo, the",
+        "In the photo, there",
+        "The relation between the symbol",
+        "There is no relation between"
+      ]
+    }
+  }
+  {
+    "file": "llava_13b_dino500_no_rltn_mcq_single.jsonl",
+    "title": "llava_13b_dino500_no_rltn_mcq_single",
+    "summary": {
+      "total_lines": 6950,
+      "evaluated_lines": 6945,
+      "accuracy_over_all_lines": 0.62,
+      "accuracy_over_evaluated_lines": 0.6204463642908568,
+      "hallucination_rate_over_all_lines": 0.38,
+      "hallucination_rate_over_evaluated_lines": 0.37955363570914324,
+      "macro_precision": 0.6926020614503992,
+      "macro_recall": 0.6172109682772255,
+      "macro_f1": 0.6112900479992287,
+      "per_class_mcq": {
+        "a": {
+          "precision": 0.7024390243902439,
+          "recall": 0.6639769452449568,
+          "f1": 0.6826666666666668
+        },
+        "b": {
+          "precision": 0.8628719275549805,
+          "recall": 0.3982089552238806,
+          "f1": 0.5449346405228759
+        },
+        "c": {
+          "precision": 0.7145256087321579,
+          "recall": 0.48379761227970436,
+          "f1": 0.5769491525423729
+        },
+        "d": {
+          "precision": 0.4905716851242143,
+          "recall": 0.9228603603603603,
+          "f1": 0.6406097322649991
+        }
+      },
+      "accuracy_by_type": {
+        "cognitive": 0.7169968717413973,
+        "perception": 0.40511627906976744,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.28300312825860274,
+        "perception": 0.5948837209302326,
+        "unknown": null
+      },
+      "parse_errors_label": 0,
+      "parse_errors_response": 5,
+      "ambiguous_responses": [
+        "In the photo, the",
+        "In this photo, the",
+        "The relation between the symbol",
+        "There is no relation between",
+        "There is no relation with"
+      ]
+    }
+  }
+  {
+    "file": "llava_13b_dino500_mcq_multi.jsonl",
+    "title": "llava_13b_dino500_mcq_multi",
+    "summary": {
+      "total_lines": 6950,
+      "evaluated_lines": 6944,
+      "accuracy_over_all_lines": 0.6248920863309353,
+      "accuracy_over_evaluated_lines": 0.6254320276497696,
+      "hallucination_rate_over_all_lines": 0.3751079136690647,
+      "hallucination_rate_over_evaluated_lines": 0.3745679723502304,
+      "macro_precision": 0.6960084088856996,
+      "macro_recall": 0.6221648121617964,
+      "macro_f1": 0.6166139234108393,
+      "per_class_mcq": {
+        "a": {
+          "precision": 0.7109326744904262,
+          "recall": 0.6634005763688761,
+          "f1": 0.6863446630888491
+        },
+        "b": {
+          "precision": 0.8622448979591837,
+          "recall": 0.4035820895522388,
+          "f1": 0.5498169987799918
+        },
+        "c": {
+          "precision": 0.7158154859967051,
+          "recall": 0.4943117178612059,
+          "f1": 0.5847913862718709
+        },
+        "d": {
+          "precision": 0.4950405770964833,
+          "recall": 0.9273648648648649,
+          "f1": 0.6455026455026455
+        }
+      },
+      "accuracy_by_type": {
+        "cognitive": 0.722569879015436,
+        "perception": 0.4088372093023256,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.277430120984564,
+        "perception": 0.5911627906976744,
+        "unknown": null
+      },
+      "parse_errors_label": 0,
+      "parse_errors_response": 6,
+      "ambiguous_responses": [
+        "In the photo, the",
+        "In the photo, there",
+        "The relation between the symbol",
+        "There is no relation between",
+        "There is no relation with"
+      ]
+    }
+  }
+  {
+    "file": "llava_13b_dino500_no_rltn_mcq_multi.jsonl",
+    "title": "llava_13b_dino500_no_rltn_mcq_multi",
+    "summary": {
+      "total_lines": 6950,
+      "evaluated_lines": 6943,
+      "accuracy_over_all_lines": 0.6284892086330935,
+      "accuracy_over_evaluated_lines": 0.6291228575543714,
+      "hallucination_rate_over_all_lines": 0.37151079136690646,
+      "hallucination_rate_over_evaluated_lines": 0.37087714244562864,
+      "macro_precision": 0.6921130242409312,
+      "macro_recall": 0.6260017170611223,
+      "macro_f1": 0.621908934809688,
+      "per_class_mcq": {
+        "a": {
+          "precision": 0.7225063938618926,
+          "recall": 0.6512968299711815,
+          "f1": 0.6850560775992725
+        },
+        "b": {
+          "precision": 0.8509615384615384,
+          "recall": 0.42268656716417913,
+          "f1": 0.5648185081771041
+        },
+        "c": {
+          "precision": 0.6931380107941403,
+          "recall": 0.5116676152532726,
+          "f1": 0.5887360838244925
+        },
+        "d": {
+          "precision": 0.5018461538461538,
+          "recall": 0.9183558558558559,
+          "f1": 0.6490250696378831
+        }
+      },
+      "accuracy_by_type": {
+        "cognitive": 0.7285624869601502,
+        "perception": 0.40744186046511627,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.27143751303984975,
+        "perception": 0.5925581395348838,
+        "unknown": null
+      },
+      "parse_errors_label": 0,
+      "parse_errors_response": 7,
+      "ambiguous_responses": [
+        "In the image, people",
+        "In the photo, the",
+        "The symbol and signal bar",
+        "There are no trains or",
+        "There is no relation with"
+      ]
+    }
+  }
