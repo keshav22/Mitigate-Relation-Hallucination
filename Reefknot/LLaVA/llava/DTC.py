@@ -130,17 +130,22 @@ def DTC_function():
 
             
             softmax_final = F.softmax(final_logits_step.float(), dim=-1)
-           
-            yes_prob = softmax_final.flatten()[3869].item()
-            no_prob = softmax_final.flatten()[1939].item()
 
-            if threshold is not None and yes_prob > 0.0 and no_prob > 0.0:
-                yes_no_entropy = -(yes_prob * math.log2(yes_prob) + no_prob * math.log2(no_prob))
+            # compute entropy over top-k probabilities
+            topk = 10
+            k = min(topk, softmax_final.size(-1))
+            topk_vals = torch.topk(softmax_final, k=k, dim=-1).values  # [bsz, k]
+            eps = 1e-12
+            topk_vals = topk_vals.clamp(min=eps)
+            # per-sample entropy (base-2)
+            topk_entropy = -(topk_vals * torch.log2(topk_vals)).sum(dim=-1)  # [bsz]
+            if threshold is not None:
+                topk_entropy = float(topk_entropy.mean().item())
             else:
-                yes_no_entropy = 0.0
+                topk_entropy = 0.0
+            entropy = topk_entropy
 
-            
-            use_dtc = (threshold is not None) and (apha is not None) and (yes_no_entropy >= float(threshold))
+            use_dtc = (threshold is not None) and (apha is not None) and (topk_entropy >= float(threshold))
             if use_dtc:
                 relative_top = 0.1
 
@@ -166,7 +171,6 @@ def DTC_function():
             else:
                
                 next_token_logits = final_logits_step
-
             
             if first:
                 for i, hs in enumerate(outputs.hidden_states):
@@ -176,7 +180,6 @@ def DTC_function():
 
             
             next_tokens_scores = logits_processor(input_ids, next_token_logits)
-
             
             if return_dict_in_generate and output_scores:
                 scores += (next_tokens_scores,)
@@ -239,7 +242,7 @@ def DTC_function():
         
         if return_dict_in_generate:
             if self.config.is_encoder_decoder:
-                return layer_scores, GenerateEncoderDecoderOutput(
+                return entropy, layer_scores, GenerateEncoderDecoderOutput(
                     sequences=input_ids,
                     scores=scores,
                     encoder_attentions=encoder_attentions,
@@ -250,7 +253,7 @@ def DTC_function():
                     past_key_values=model_kwargs.get("past_key_values"),
                 )
             else:
-                return layer_scores, GenerateDecoderOnlyOutput(
+                return entropy, layer_scores, GenerateDecoderOnlyOutput(
                     sequences=input_ids,
                     scores=scores,
                     attentions=decoder_attentions,
