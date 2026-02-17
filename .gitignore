@@ -4,5 +4,7 @@ __pycache__
 *.egg-info
 dist
 
+.idea
 new_image_qnobject_map.json
 Reefknot/Dataset/objects.json
+
