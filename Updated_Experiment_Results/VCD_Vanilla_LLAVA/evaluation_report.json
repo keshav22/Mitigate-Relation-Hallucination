@@ -1,0 +1,42 @@
+{
+  "files": [
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/VCD_Vanilla_LLAVA/llava_YESNO_vcd_vanilla.jsonl",
+      "title": "llava_YESNO_vcd_vanilla",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9740,
+        "precision": 0.5832666132906325,
+        "recall": 0.8975359342915811,
+        "f1": 0.7070527337431252,
+        "correct": 6118,
+        "incorrect": 3622,
+        "pred_missing_or_ambiguous_total": 0,
+        "pred_missing_or_ambiguous_label_yes": 0,
+        "pred_missing_or_ambiguous_label_no": 0,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6281314168377823,
+        "accuracy_over_all_lines": 0.6281314168377823,
+        "accuracy_by_type": {
+          "cognitive": 0.6533088235294118,
+          "perception": 0.5962790697674418,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.3466911764705882,
+          "perception": 0.4037209302325582,
+          "unknown": null
+        },
+        "hallucination_rate_over_evaluated": 0.3718685831622177,
+        "hallucination_rate_over_all_lines": 0.3718685831622177,
+        "ambiguous_gold_examples": [],
+        "ambiguous_pred_examples": [],
+        "tp": 4371,
+        "tn": 1747,
+        "fp": 3123,
+        "fn": 499
+      }
+    }
+  ]
+}
