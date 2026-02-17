@@ -45,8 +45,11 @@ class AttentionVisualizer:
                 self.image_token_index = index
                 break
 
-    def get_attention_metric(self, use_layer_count: int = 1):
-        selected_layers = range(self.total_layers - use_layer_count, self.total_layers)
+    def get_attention_metric(self, layer_start: int = 39, layer_end: int = 40):
+        if layer_end > self.total_layers:
+            print("layer_end exceeds total layers")
+            exit(1)
+        selected_layers = range(layer_start, layer_end)
         
         token_attention = self.attentions[self.attention_start_index]
         avg_mean_of_attention = torch.stack([

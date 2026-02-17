@@ -287,6 +287,10 @@ def eval_model(args):
             prefix=f"/home/nl97naca/attention_maps_noised/qn_{line_counter}_"
         )
 
+        layer_count = 18
+        layer_start = 15
+        layer_end = 32
+
         attention_visualizer = AttentionVisualizer(
                             input_ids[0],
                             IMAGE_TOKEN_INDEX,
@@ -299,8 +303,8 @@ def eval_model(args):
                             attention_start_index=0,
                             attn_bbs=attn_bbs
                         )
-        attention_visualizer.visualise_layer_attention_heatmap()
-        attn_metric_orig = attention_visualizer.get_attention_metric()
+        attention_visualizer.visualise_layer_attention_heatmap(use_layer_count=layer_count)
+        attn_metric_orig = attention_visualizer.get_attention_metric(layer_start=layer_start, layer_end=layer_end)
 
         attention_visualizer_noise_image = AttentionVisualizer(
                             input_ids[0],
@@ -315,14 +319,14 @@ def eval_model(args):
                             attn_bbs=attn_bbs,
                             add_folder_name="_cd"
                         )
-        attention_visualizer_noise_image.visualise_layer_attention_heatmap()
-        attn_metric_noised = attention_visualizer_noise_image.get_attention_metric()
+        attention_visualizer_noise_image.visualise_layer_attention_heatmap(use_layer_count=layer_count)
+        attn_metric_noised = attention_visualizer_noise_image.get_attention_metric(layer_start=layer_start, layer_end=layer_end)
         
         outputs = tokenizer.batch_decode(
             output_ids.generation.sequences,
             skip_special_tokens=True
         )[0].strip()
-        print("output:", outputs)
+        #print("output:", outputs)
         mllm = args.model_path.split('/')[-1]
         ans_file.write(
             json.dumps(
