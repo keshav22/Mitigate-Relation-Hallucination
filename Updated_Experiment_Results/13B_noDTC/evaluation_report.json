@@ -1,0 +1,152 @@
+{
+  "files": [
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_VQA_Results_with_rt.jsonl",
+      "title": "llava13b_VQA_Results_with_rt",
+      "summary": {
+        "hallucination_rate_over_all": 0.5195071868583162,
+        "hallucination_rate_perception": 0.4936708860759494,
+        "hallucination_rate_cognitive": 0.5383522727272727
+      },
+      "counts": {
+        "perception": 2054,
+        "equivalent": 2340,
+        "perception_equivalent": 1040,
+        "different": 2530,
+        "perception_different": 1014,
+        "cognitive": 2816,
+        "cognitive_equivalent": 1300,
+        "cognitive_different": 1516
+      }
+    },
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_MultiChoice_with_rt.jsonl",
+      "title": "llava13b_MultiChoice_with_rt",
+      "summary": {
+        "total_lines": 6950,
+        "evaluated_lines": 6947,
+        "accuracy_over_all_lines": 0.6142446043165468,
+        "accuracy_over_evaluated_lines": 0.6145098603713833,
+        "hallucination_rate_over_all_lines": 0.3857553956834532,
+        "hallucination_rate_over_evaluated_lines": 0.38549013962861667,
+        "macro_precision": 0.6951433390976042,
+        "macro_recall": 0.6111646734999691,
+        "macro_f1": 0.6036661106209293,
+        "per_class_mcq": {
+          "a": {
+            "precision": 0.7053789731051344,
+            "recall": 0.6651296829971182,
+            "f1": 0.6846633046573717
+          },
+          "b": {
+            "precision": 0.8810511756569848,
+            "recall": 0.38007159904534604,
+            "f1": 0.5310546060858691
+          },
+          "c": {
+            "precision": 0.711304347826087,
+            "recall": 0.4647727272727273,
+            "f1": 0.5621993127147766
+          },
+          "d": {
+            "precision": 0.4828388598022106,
+            "recall": 0.9346846846846847,
+            "f1": 0.6367472190257001
+          }
+        },
+        "accuracy_by_type": {
+          "cognitive": 0.7077340004169272,
+          "perception": 0.40651162790697676,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.29226599958307276,
+          "perception": 0.5934883720930233,
+          "unknown": null
+        },
+        "parse_errors_label": 0,
+        "parse_errors_response": 3,
+        "ambiguous_responses": [
+          "In the",
+          "There is"
+        ]
+      }
+    },
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_YESNO_results_with_rt.jsonl",
+      "title": "llava13b_YESNO_results_with_rt",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9740,
+        "precision": 0.5829619921363041,
+        "recall": 0.913347022587269,
+        "f1": 0.71168,
+        "correct": 6136,
+        "incorrect": 3604,
+        "pred_missing_or_ambiguous_total": 0,
+        "pred_missing_or_ambiguous_label_yes": 0,
+        "pred_missing_or_ambiguous_label_no": 0,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6299794661190965,
+        "accuracy_over_all_lines": 0.6299794661190965,
+        "accuracy_by_type": {
+          "cognitive": 0.658639705882353,
+          "perception": 0.5937209302325581,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.341360294117647,
+          "perception": 0.4062790697674419,
+          "unknown": null
+        },
+        "hallucination_rate_over_evaluated": 0.3700205338809035,
+        "hallucination_rate_over_all_lines": 0.3700205338809035,
+        "ambiguous_gold_examples": [],
+        "ambiguous_pred_examples": [],
+        "tp": 4448,
+        "tn": 1688,
+        "fp": 3182,
+        "fn": 422
+      }
+    },
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_YesNo_seed_Results.jsonl",
+      "title": "llava13b_YesNo_seed_Results",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9740,
+        "precision": 0.5827215521761929,
+        "recall": 0.9127310061601642,
+        "f1": 0.7113138102096335,
+        "correct": 6132,
+        "incorrect": 3608,
+        "pred_missing_or_ambiguous_total": 0,
+        "pred_missing_or_ambiguous_label_yes": 0,
+        "pred_missing_or_ambiguous_label_no": 0,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6295687885010267,
+        "accuracy_over_all_lines": 0.6295687885010267,
+        "accuracy_by_type": {
+          "cognitive": 0.6584558823529412,
+          "perception": 0.5930232558139535,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.34154411764705883,
+          "perception": 0.40697674418604646,
+          "unknown": null
+        },
+        "hallucination_rate_over_evaluated": 0.3704312114989733,
+        "hallucination_rate_over_all_lines": 0.3704312114989733,
+        "ambiguous_gold_examples": [],
+        "ambiguous_pred_examples": [],
+        "tp": 4445,
+        "tn": 1687,
+        "fp": 3183,
+        "fn": 425
+      }
+    }
+  ]
+}
