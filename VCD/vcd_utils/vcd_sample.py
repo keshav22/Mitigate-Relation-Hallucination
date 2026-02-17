@@ -1,4 +1,5 @@
 ENABLE_ATTENTION_MAP = False
+AGGREGATE_COUNTS = False
 import copy
 import inspect
 import warnings
@@ -386,7 +387,7 @@ def sample(
 
         # prepare model inputs
         model_inputs = self.prepare_inputs_for_generation(input_ids, **model_kwargs)
-        label = getattr(self.generation_config, "label"). #get label from generation config for logging
+        label = getattr(self.generation_config, "label") #get label from generation config for logging
         # forward pass to get next token
         outputs = self(
             **model_inputs,
@@ -522,7 +523,7 @@ def sample(
             streamer.put(next_tokens.cpu())
         
         # Mark first token as generated after we've logged the logits
-        if not first_token_generated and use_cd:
+        if not first_token_generated and use_cd and AGGREGATE_COUNTS:
             aggregate_counts_and_save(pred=next_tokens.item(), label=label, cd_logits=cd_logits_copy, next_token_logits=next_token_logits, next_token_logits_cd=next_token_logits_cd,tokenizer=tokenizer, output_folder=output_folder, experiment_name=experiment_name)
         first_token_generated = True
         

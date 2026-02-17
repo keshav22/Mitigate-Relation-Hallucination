@@ -1,3 +1,5 @@
+VISUALIZE_ATTENTION = False
+
 import argparse
 # from Reefknot.LLaVA.infer_LLaVA_yesandno import get_chunk, get_path
 import torch
@@ -33,7 +35,7 @@ import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-PROJECT_HOME = "/home/mt45dumo"
+PROJECT_HOME = "/home/nl97naca"
 
 def tensor_to_img(tensor):
     img = tensor.numpy()
@@ -147,14 +149,14 @@ def eval_model(args):
             # bbox_coords = [bb["x"], bb["y"], bb["x"] + bb["w"], bb["y"] + bb["h"]]
             # draw.rectangle(bbox_coords, outline="red", width=2)
 
-            # image_draw.save(f"/home/mt45dumo/runenv/bb_images/{line_counter}_bb.jpg")
+            # image_draw.save(f"{PROJECT_HOME}/runenv/bb_images/{line_counter}_bb.jpg")
 
             # Same for CD image
 
             image_tensor_cd = add_noise_patch(image_tensor, args.noise_step, new_bounding_box)
 
             img_cd = tensor_to_img(image_tensor_cd)
-            # img_cd.save(f"/home/nl97naca/patched_images/{line_counter}.jpg")
+            # img_cd.save(f"{PROJECT_HOME}/patched_images/{line_counter}.jpg")
         elif args.cd_mode == "dino_cd":
             img_id = line["image_id"]
 
@@ -248,9 +250,9 @@ def eval_model(args):
 
         if line_counter % 100 == 0:
             orig_img = tensor_to_img(image_tensor)
-            orig_img.save(f"/home/mt45dumo/runenv/{args.experiment_name}_shuffled_images/{line_counter}_orig.jpg")
+            #orig_img.save(f"{PROJECT_HOME}/runenv/{args.experiment_name}/{line_counter}_orig.jpg")
             img_cd = tensor_to_img(image_tensor_cd)
-            img_cd.save(f"/home/mt45dumo/runenv/{args.experiment_name}_shuffled_images/{line_counter}_shuffle.jpg")
+            #img_cd.save(f"{PROJECT_HOME}/runenv/{args.experiment_name}/{line_counter}_shuffle.jpg")
         # stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
         # keywords = [stop_str]
         # stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
@@ -287,13 +289,14 @@ def eval_model(args):
         raw_image = tensor_to_img(image_tensor)
         img_cd = tensor_to_img(image_tensor_cd)
 
+        #old attention maps
         save_attention_maps(
             input_ids,
             tokenizer,
             raw_image=raw_image,
             output_ids=output_ids.generation.sequences,
             outputs_attentions=output_ids.generation.attentions,
-            prefix=f"/home/nl97naca/attention_maps_orig/qn_{line_counter}_"
+            prefix=f"{PROJECT_HOME}/attention_maps_orig/qn_{line_counter}_"
         )
         save_attention_maps(
             input_ids,
@@ -301,43 +304,45 @@ def eval_model(args):
             raw_image=img_cd,
             output_ids=output_ids.generation.sequences,
             outputs_attentions=output_ids.attentions_cd,
-            prefix=f"/home/nl97naca/attention_maps_{args.experiment_name}/qn_{line_counter}_"
+            prefix=f"{PROJECT_HOME}/attention_maps_{args.experiment_name}/qn_{line_counter}_"
         )
 
-        layer_count = 18
-        layer_start = 15
-        layer_end = 32
+        #new
+        if VISUALIZE_ATTENTION:
+            layer_count = 18
+            layer_start = 15
+            layer_end = 32
 
-        attention_visualizer = AttentionVisualizer(
-                            input_ids[0],
-                            IMAGE_TOKEN_INDEX,
-                            tokenizer,
-                            model_path,
-                            output_ids.generation.attentions,
-                            raw_image,
-                            line["image_id"],
-                            args.question_file,
-                            attention_start_index=0,
-                            attn_bbs=attn_bbs
-                        )
-        attention_visualizer.visualise_layer_attention_heatmap(use_layer_count=layer_count)
-        attn_metric_orig = attention_visualizer.get_attention_metric(layer_start=layer_start, layer_end=layer_end)
+            attention_visualizer = AttentionVisualizer(
+                                input_ids[0],
+                                IMAGE_TOKEN_INDEX,
+                                tokenizer,
+                                model_path,
+                                output_ids.generation.attentions,
+                                raw_image,
+                                line["image_id"],
+                                args.question_file,
+                                attention_start_index=0,
+                                attn_bbs=attn_bbs
+                            )
+            attention_visualizer.visualise_layer_attention_heatmap(use_layer_count=layer_count)
+            attn_metric_orig = attention_visualizer.get_attention_metric(layer_start=layer_start, layer_end=layer_end)
 
-        attention_visualizer_noise_image = AttentionVisualizer(
-                            input_ids[0],
-                            IMAGE_TOKEN_INDEX,
-                            tokenizer,
-                            model_path,
-                            output_ids.attentions_cd,
-                            img_cd,
-                            line["image_id"],
-                            args.question_file,
-                            attention_start_index=0,
-                            attn_bbs=attn_bbs,
-                            add_folder_name="_cd"
-                        )
-        attention_visualizer_noise_image.visualise_layer_attention_heatmap(use_layer_count=layer_count)
-        attn_metric_noised = attention_visualizer_noise_image.get_attention_metric(layer_start=layer_start, layer_end=layer_end)
+            attention_visualizer_noise_image = AttentionVisualizer(
+                                input_ids[0],
+                                IMAGE_TOKEN_INDEX,
+                                tokenizer,
+                                model_path,
+                                output_ids.attentions_cd,
+                                img_cd,
+                                line["image_id"],
+                                args.question_file,
+                                attention_start_index=0,
+                                attn_bbs=attn_bbs,
+                                add_folder_name="_cd"
+                            )
+            attention_visualizer_noise_image.visualise_layer_attention_heatmap(use_layer_count=layer_count)
+            attn_metric_noised = attention_visualizer_noise_image.get_attention_metric(layer_start=layer_start, layer_end=layer_end)
 
         outputs = tokenizer.batch_decode(
             output_ids.generation.sequences,
@@ -345,19 +350,21 @@ def eval_model(args):
         )[0].strip()
         #print("output:", outputs)
         mllm = args.model_path.split('/')[-1]
-        ans_file.write(
-            json.dumps(
-                {
+        stats = {
                     "image_id": line["image_id"],
                     "query_prompt": cur_prompt,
                     "response": outputs,
                     "label": label,
                     "relation_type": line["relation_type"],
                     "mllm_name": mllm,
-                    "attention_metric_original": attn_metric_orig,
-                    "attention_metric_noised": attn_metric_noised
                 }
-            )
+        if VISUALIZE_ATTENTION:
+            stats.update({
+                "attention_metric_original": attn_metric_orig,
+                "attention_metric_noised": attn_metric_noised,
+                })
+        ans_file.write(
+            json.dumps(stats)
             + "\n"
         )
         ans_file.flush()
@@ -384,7 +391,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_new_tokens", type=int, default=2)
     parser.add_argument("--noise_step", type=int, default=500)
     parser.add_argument("--cd_mode", type=str, default="no_cd")
-    parser.add_argument("--gdino_jsonl", type=str, required=True)
+    parser.add_argument("--gdino_jsonl", type=str)
     parser.add_argument("--cd_alpha", type=float, default=1)
     parser.add_argument("--cd_beta", type=float, default=0.2)
     parser.add_argument("--quantized", action='store_true', help="Use 4 bit quantized model", default=False)
@@ -407,6 +414,9 @@ if __name__ == "__main__":
             image_qn_obj_map = json.load(f)
     elif args.cd_mode == "dino_cd":
         # Load GroundingDINO detections
+        if args.gdino_jsonl is None:
+            raise RuntimeError("Please provide gdino_jsonl for dino_cd mode")
+
         with open(args.gdino_jsonl, "r") as f:
             gdino_lines = [json.loads(l) for l in f]
 
