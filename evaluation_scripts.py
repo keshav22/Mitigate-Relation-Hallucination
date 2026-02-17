@@ -472,35 +472,37 @@ def evaluate_vqa(answer_path: Path, model_path: str):
 
     return out
 
-def evaluate_auroc(file_path):
+def evaluate_auroc(file_path, base_model_file_path):
 
     y_true = []   # 1 = base model wrong, 0 = base model correct
     scores = []   # entropy per example
 
-    with open(file_path, "r") as f:
-        for line in f:
+    skipped = 0
+    with open(file_path, "r") as f, \
+         open(base_model_file_path, "r") as f_base:
+        for line, line_base in zip(f, f_base):
+            if not line or not line_base:
+                if line != line_base:  # Only warn if one of them is empty
+                    print("Warning: One of the lines is empty. Skipping this pair.")
+                continue
+
             ex = json.loads(line)
+            ex_base = json.loads(line_base)
 
-            if ex.get("yes_prob") is None or ex.get("no_prob") is None:
+            if not "is_correct" in ex_base:
+                #not all model responses can be interpreted
+                skipped += 1
                 continue
-
-            label = (ex.get("label") or "").strip().lower()
-            if label not in ("yes", "no"):
-                continue
-
-            yes_prob = float(ex["yes_prob"])
-            no_prob  = float(ex["no_prob"])
-
-            # ---- base model prediction from yes/no probs ----
-            base_pred = "yes" if yes_prob >= no_prob else "no"
 
             # positive = base model is wrong (doesn't match label)
-            is_wrong = 1 if base_pred != label else 0
+            is_wrong = 1 if not ex_base["is_correct"] else 0
             y_true.append(is_wrong)
 
             # score = entropy(yes,no) (higher = more uncertain)
             score = ex["entropy"]
             scores.append(score)
+        if skipped:
+            print(f"{skipped=}")
 
     # ROC where positive class = "base model wrong"
     fpr, tpr, thresholds = roc_curve(y_true, scores)
@@ -512,8 +514,8 @@ def evaluate_auroc(file_path):
     plt.plot(fpr, tpr, label=f"ROC curve (AUC = {roc_auc:.3f})")
     plt.plot([0, 1], [0, 1], linestyle="--")
 
-    # ---------- mark threshold = 0.9 on the ROC curve ----------
-    target_threshold = 0.9
+    # ---------- mark threshold on the ROC curve ----------
+    target_threshold = 0.7 #adjust-if-needed
 
     # thresholds are in the same order as fpr/tpr; find nearest one
     idx = (np.abs(thresholds - target_threshold)).argmin()
@@ -535,7 +537,10 @@ def evaluate_auroc(file_path):
 
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
-    plt.title("ROC: detect base-model mistakes using yes/no entropy")
+    title = "ROC: detect base-model mistakes using top-k=10 entropy" #adjust-if-needed
+    if skipped:
+        title += f" ({skipped} not evaluated)"
+    plt.title(title)
     plt.legend(loc="lower right")
     plt.grid(True)
     plt.show()
@@ -603,4 +608,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    evaluate_auroc(
+                    "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/DTC_13B/llava13b_YESNO_DTC_2T_entropy_results.jsonl",
+                    # "/home/nl97naca/results/dtc-topk-10/yesno.jsonl",
+                  
+                    "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_YESNO_results_with_rt_stats.jsonl"
+                    )
+    #main()
