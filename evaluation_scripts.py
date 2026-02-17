@@ -80,6 +80,9 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
     total_lines = 0
     ambiguous_responses = set()
 
+    stats_path = path.with_stem(f"{path.stem}_stats")
+    stats_file = open(os.path.expanduser(stats_path), "w")
+
     with path.open("r", encoding="utf-8") as fh:
         for i, line in enumerate(fh, start=1):
             line = line.strip()
@@ -115,12 +118,17 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
                 # both parsed as MCQ choices; count per-class TP/FP
                 # true positive when predicted == label
                 if resp_choice == label_choice:
+                    obj["is_correct"] = True
                     counts[f"mcq_TP_{resp_choice}"] += 1
                     counts[f"mcq_correct_{relation_type}"] += 1
                 else:
+                    obj["is_correct"] = False
                     counts[f"mcq_FP_{resp_choice}"] += 1
                     counts[f"mcq_FN_{label_choice}"] += 1
                     counts[f"mcq_wrong_{relation_type}"] += 1
+            
+            stats_file.write(json.dumps(obj) + "\n")
+        stats_file.close()
     # per-class MCQ precision (for choices a,b,c,d)
     per_class_mcq = {}
     prec_vals = []
@@ -227,6 +235,9 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
     ambiguous_gold_values = set()
     ambiguous_pred_values = set()
 
+    stats_path = path.with_stem(f"{path.stem}_stats")
+    stats_file = open(os.path.expanduser(stats_path), "w")
+
     with path.open("r", encoding="utf-8") as fh:
         for i, line in enumerate(fh, start=1):
             line = line.strip()
@@ -237,6 +248,8 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
                 obj = json.loads(line)
             except Exception:
                 counts["parse_error"] += 1
+                print("Parse error")
+                exit(1)
                 continue
 
             title = path.stem
@@ -265,6 +278,9 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
             relation_type = obj.get("relation_type", "unknown")
             if gold is not None and pred is not None:
                 counts[f"evaluated_{relation_type}"] += 1
+
+                obj["is_correct"] = (pred == gold)
+
                 if pred == "yes" and gold == "yes":
                     counts["TP"] += 1
                     counts["TP_" + relation_type] += 1
@@ -277,6 +293,10 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
                 elif pred == "yes" and gold == "no":
                     counts["FP"] += 1
                     counts["FP_" + relation_type] += 1
+            
+            stats_file.write(json.dumps(obj) + "\n")
+        stats_file.close()
+
 
 
     precision = counts.get("TP", 0) / (counts.get("TP", 0) + counts.get("FP", 0)) if (counts.get("TP", 0) + counts.get("FP", 0)) > 0 else None
@@ -394,7 +414,10 @@ def evaluate_vqa(answer_path: Path, model_path: str):
     
     re_pattern = r'\<.*?\>'
     device = next(model.parameters()).device
-    
+
+    stats_path = answer_path.with_stem(f"{answer_path.stem}_stats")
+    stats_file = open(os.path.expanduser(stats_path), "w")
+
     for item in tqdm(answers):
         
         response = re.sub(re_pattern, '', item['response'].strip())
@@ -408,14 +431,20 @@ def evaluate_vqa(answer_path: Path, model_path: str):
             model_response = are_equivalent(label, response, model, tokenizer, device)
             
             if model_response == "yes":
+                item["is_correct"] = True
                 counts["equivalent"] = counts.get('equivalent', 0) + 1
                 counts[f'{relation_type}_equivalent'] = counts.get(f'{relation_type}_equivalent', 0) + 1
             else:
+                item["is_correct"] = False
                 counts["different"] = counts.get('different', 0) + 1
                 counts[f'{relation_type}_different'] = counts.get(f'{relation_type}_different', 0) + 1
         else:
             counts["ambiguous"] = counts.get("ambiguous", 0) + 1
             counts[f'{relation_type}_ambiguous'] = counts.get(f'{relation_type}_ambiguous', 0) + 1
+        
+        stats_file.write(json.dumps(item) + "\n")
+    stats_file.close()
+
     
     total = len(answers)
     
@@ -481,7 +510,7 @@ def main():
         
         if "vqa" in stem:
             result = evaluate_vqa(path, args.model_path)
-        elif "multichoice" in stem:
+        elif "multichoice" in stem or "mcq" in stem:
             #ToDo : handle MCQ lines where response is not a letter A-D and instead whole words.
             result = evaluate_mcq_choice(path, args.detailed_metrics)
         elif "yes" in stem or "no" in stem:

@@ -335,7 +335,7 @@ def eval_model(args):
                     "query_prompt": cur_prompt,
                     "response": outputs,
                     "label": label,
-                    "relation_type": line["type"],
+                    "relation_type": line["relation_type"],
                     "mllm_name": mllm,
                     "attention_metric_original": attn_metric_orig,
                     "attention_metric_noised": attn_metric_noised
