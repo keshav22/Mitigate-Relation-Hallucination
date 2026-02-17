@@ -91,10 +91,14 @@ class AttentionVisualizer:
             
             pre_text = ""
             
-            if "VQA" in self.question_path:
+            if "YESNO" in self.question_path:
+                pre_text = "YESNO_"
+            elif "VQA" in self.question_path:
                 pre_text = "VQA_"
             elif "Multichoice" in self.question_path:
                 pre_text = "MCQ_"
+            else:
+                pre_text = "unk-qn-type_"
             
             self.save_image_atten_map_plot(avg_mean_of_attention, f'{pre_text}all_generated_token_avg_{use_layer_count}_layers')
         elif use_layer_count > 1:
