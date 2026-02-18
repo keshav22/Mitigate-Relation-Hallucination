@@ -37,6 +37,78 @@
         "fp": 3123,
         "fn": 499
       }
+    },
+    {
+      "file": "/home/nl97naca/results/vcd-mcq/mcq.jsonl",
+      "title": "mcq",
+      "summary": {
+        "total_lines": 6950,
+        "evaluated_lines": 6948,
+        "accuracy_over_all_lines": 0.6164028776978417,
+        "accuracy_over_evaluated_lines": 0.616580310880829,
+        "hallucination_rate_over_all_lines": 0.38359712230215826,
+        "hallucination_rate_over_evaluated_lines": 0.383419689119171,
+        "macro_precision": 0.6946516141076181,
+        "macro_recall": 0.6132421508199661,
+        "macro_f1": 0.605858304292467,
+        "per_class_mcq": {
+          "a": {
+            "precision": 0.7098350641417227,
+            "recall": 0.6697406340057637,
+            "f1": 0.6892052194543298
+          },
+          "b": {
+            "precision": 0.8774104683195593,
+            "recall": 0.38029850746268656,
+            "f1": 0.5306122448979592
+          },
+          "c": {
+            "precision": 0.7060322854715378,
+            "recall": 0.4716231555051078,
+            "f1": 0.5654984688669615
+          },
+          "d": {
+            "precision": 0.48532863849765256,
+            "recall": 0.9313063063063063,
+            "f1": 0.6381172839506173
+          }
+        },
+        "accuracy_by_type": {
+          "cognitive": 0.7096706961233847,
+          "perception": 0.4088372093023256,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.29032930387661526,
+          "perception": 0.5911627906976744,
+          "unknown": null
+        },
+        "parse_errors_label": 0,
+        "parse_errors_response": 2,
+        "ambiguous_responses": [
+          "In the photo, the cat is eating an apple while sitting on the man's lap.",
+          "The relation between the symbol and signal bar in this photo is that the signal bar is showing the strength"
+        ]
+      }
+    },
+    {
+      "file": "/home/nl97naca/results/vcd-vqa/vqa.jsonl",
+      "title": "vqa",
+      "summary": {
+        "hallucination_rate_over_all": 0.5365503080082136,
+        "hallucination_rate_perception": 0.5223255813953488,
+        "hallucination_rate_cognitive": 0.5477941176470589
+      },
+      "counts": {
+        "perception": 2150,
+        "equivalent": 2257,
+        "perception_equivalent": 1027,
+        "different": 2613,
+        "perception_different": 1123,
+        "cognitive": 2720,
+        "cognitive_equivalent": 1230,
+        "cognitive_different": 1490
+      }
     }
   ]
 }
