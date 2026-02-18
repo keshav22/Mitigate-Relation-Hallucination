@@ -97,6 +97,9 @@ def DTC_function():
         first = True
         layer_scores = {}
 
+        average_entropy = 0.0
+        average_entropy_count = 0
+
         while True:
             if synced_gpus:
                 
@@ -128,22 +131,22 @@ def DTC_function():
             final_logits_step = self.lm_head(outputs.hidden_states[final_layer_idx])[:, -1, :]  # [bsz, vocab]
             base_logits_step = self.lm_head(outputs.hidden_states[base_layer_idx])[:, -1, :]    # [bsz, vocab]
 
-            
-            softmax_final = F.softmax(final_logits_step.float(), dim=-1)
-
-            # compute entropy over top-k probabilities
-            topk = 10
-            k = min(topk, softmax_final.size(-1))
-            topk_vals = torch.topk(softmax_final, k=k, dim=-1).values  # [bsz, k]
+            # compute entropy over top-k logits (safe: bound k by vocab size)
             eps = 1e-12
-            topk_vals = topk_vals.clamp(min=eps)
-            # per-sample entropy (base-2)
-            topk_entropy = -(topk_vals * torch.log2(topk_vals)).sum(dim=-1)  # [bsz]
+            vmax = final_logits_step.size(-1)
+            k = min(10, vmax)
+            topk_logits = torch.topk(final_logits_step, k=k, dim=-1).values  # [bsz, k]
+            topk_probs = F.softmax(topk_logits, dim=-1).clamp(min=eps)      # normalize over top-k
+
+            # per-sample entropy (base-2), then mean across batch if threshold is used
+            per_sample_entropy = -(topk_probs * torch.log2(topk_probs)).sum(dim=-1)  # [bsz]
             if threshold is not None:
-                topk_entropy = float(topk_entropy.mean().item())
+                topk_entropy = float(per_sample_entropy.mean().item())
             else:
                 topk_entropy = 0.0
-            entropy = topk_entropy
+
+            average_entropy += topk_entropy
+            average_entropy_count += 1
 
             use_dtc = (threshold is not None) and (apha is not None) and (topk_entropy >= float(threshold))
             if use_dtc:
@@ -241,8 +244,10 @@ def DTC_function():
 
         
         if return_dict_in_generate:
+            if average_entropy_count > 0:
+                average_entropy = average_entropy / average_entropy_count
             if self.config.is_encoder_decoder:
-                return entropy, layer_scores, GenerateEncoderDecoderOutput(
+                return average_entropy, layer_scores, GenerateEncoderDecoderOutput(
                     sequences=input_ids,
                     scores=scores,
                     encoder_attentions=encoder_attentions,
@@ -253,7 +258,7 @@ def DTC_function():
                     past_key_values=model_kwargs.get("past_key_values"),
                 )
             else:
-                return entropy, layer_scores, GenerateDecoderOnlyOutput(
+                return average_entropy, layer_scores, GenerateDecoderOnlyOutput(
                     sequences=input_ids,
                     scores=scores,
                     attentions=decoder_attentions,
