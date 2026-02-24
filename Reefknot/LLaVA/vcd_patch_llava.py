@@ -159,12 +159,13 @@ def eval_model(args):
             # img_cd.save(f"{PROJECT_HOME}/patched_images/{line_counter}.jpg")
         elif args.cd_mode == "dino_cd":
             img_id = line["image_id"]
+            query = line["query_prompt"]
 
-            if img_id not in gdino_boxes:
+            if img_id not in gdino_boxes or query not in gdino_boxes[img_id]:
                 print(f"No GroundingDINO detections for {img_id}, using full CD fallback")
                 image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
             else:
-                detections = gdino_boxes[img_id] #TODO find by question text instead, since it may mention different objects
+                detections = gdino_boxes[img_id][query]
                 if len(detections) !=0 and args.noise_target_mode == "single":
                     detections = [max(detections, key=lambda d: d["score"])]
 
@@ -423,10 +424,14 @@ if __name__ == "__main__":
         gdino_boxes = {}
         for item in gdino_lines:
             image_id = item["image_id"]
+            query = item["query_prompt"]
             detections = item.get("detections", [])
-            if not detections:
-                continue
-            gdino_boxes[image_id] = detections
+        
+            if image_id not in gdino_boxes:
+                gdino_boxes[image_id] = {}
+        
+            gdino_boxes[image_id][query] = detections
+        print("Grounding Dino Mapping: ", gdino_boxes)
 
     elif args.cd_mode == "shuffle_cd" or args.cd_mode == "flip_image":
         if args.patch_size is None:
