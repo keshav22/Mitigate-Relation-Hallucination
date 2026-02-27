@@ -80,7 +80,7 @@ class CustomDataset(Dataset):
 
         input_ids = tokenizer_image_token(prompt, self.tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt')
 
-        return input_ids, image_tensor, idx, line["text"]
+        return input_ids, image_tensor, idx, line["text"], image.size
 
     def __len__(self):
         return len(self.questions)
@@ -117,7 +117,7 @@ def eval_model(args):
 
     data_loader = create_data_loader(questions, args.image_folder, tokenizer, image_processor, model.config, qtype=args.qtype)
 
-    for input_ids, image_tensor, real_idx, cur_prompt in tqdm(data_loader):
+    for input_ids, image_tensor, real_idx, cur_prompt, img_size in tqdm(data_loader):
         idx = real_idx.item()
         cur_prompt = cur_prompt[0]
 
@@ -128,7 +128,7 @@ def eval_model(args):
                 layer_score, output_ids = model.generate(
                     input_ids,
                     images=image_tensor.unsqueeze(0).half().cuda(),
-                    image_sizes=[image.size],
+                    image_sizes=[img_size],
                     do_sample=False, # True if args.temperature > 0 else False,
                     temperature=args.temperature,
                     top_p=args.top_p,
@@ -148,7 +148,7 @@ def eval_model(args):
                 output_ids = model.generate(
                 input_ids,
                 images=image_tensor.unsqueeze(0).half().cuda(),
-                image_sizes=[image.size],
+                image_sizes=[img_size],
                 do_sample=False, # True if args.temperature > 0 else False,
                 temperature=args.temperature,
                 top_p=args.top_p,
@@ -158,8 +158,7 @@ def eval_model(args):
                 output_scores=True
             )
 
-        # print(outputs)
-        output_ids = generated_outputs.sequences
+        
         
         # scores = generated_outputs.scores
 
@@ -167,11 +166,8 @@ def eval_model(args):
         input_token_len = input_ids.shape[1]
         
         raw_tokens = output_ids[:, input_token_len:]
-        # print(f"Tokens to decode: {raw_tokens}")
-        # outputs = tokenizer.batch_decode(output_ids[:, input_token_len:], skip_special_tokens=True)[0]
         outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
-        # print(f"Total sequence shape: {output_ids.shape}")
-        # print(f"Input token length variable: {input_token_len}")
+
         outputs = outputs.strip()
 
         ans_id = shortuuid.uuid()
