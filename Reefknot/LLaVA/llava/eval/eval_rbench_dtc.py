@@ -138,7 +138,7 @@ def eval_model(args):
                     output_scores=True,
                     apha=args.apha,
                     threshold=args.threshold,
-                    layer_lambda=args.layer_lambda,
+                    layer_lambda=args.layer_lambda
                 ) 
                 # layer_score["label"] = label
                 # with open(os.path.join("/home/mt45dumo/runenv/logits/dtc_layer_scores", f"{line_counter}_layer_scores.pt"), "wb") as f:

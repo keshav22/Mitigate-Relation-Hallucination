@@ -1,10 +1,10 @@
 #!/bin/bash
 ### eval_image
-python /home/mt45dumo/R-Bench/R-Bench_MAI/r_bench_eval.py \
+python /home/mt45dumo/Mitigate-Relation-Hallucination/r_bench_eval.py \
     --annotation-dir /home/mt45dumo/R-Bench/R-Bench_MAI/data_filterd \
     --question-file /home/mt45dumo/R-Bench/R-Bench_MAI/data_filterd/image-level_filterd.json \
     --question-id-file /home/mt45dumo/R-Bench/R-Bench_MAI/data_filterd/nocaps_image-level_rel_ids_holder.json \
-    --result-file /home/mt45dumo/Mitigate-Relation-Hallucination/outs/r_bench_image_result.json \
+    --result-file /home/mt45dumo/Mitigate-Relation-Hallucination/Reefknot/Result/R_Bench/r_bench_llava_dtc.jsonl \
     --eval_image
 
 
