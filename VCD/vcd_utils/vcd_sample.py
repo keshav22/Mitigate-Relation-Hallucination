@@ -1,58 +1,62 @@
 ENABLE_ATTENTION_MAP = False
+if ENABLE_ATTENTION_MAP:
+    import cv2 #attention map
+
 import copy
 import inspect
 import warnings
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 import matplotlib.pyplot as plt
-if ENABLE_ATTENTION_MAP:
-    import cv2 #attention map
 import torch
 import torch.distributed as dist
+import transformers
+import sys
+import os
+import json
+
 from torch import nn
 from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from transformers.generation import SampleDecoderOnlyOutput
 from transformers.generation.logits_process import (
     LogitsProcessorList,
 )
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
 from transformers.generation.stopping_criteria import (
     StoppingCriteria,
     StoppingCriteriaList,
     validate_stopping_criteria,
 )
-import transformers
 from transformers.generation.utils import SampleOutput
 from pathlib import Path
-
 from llava.mm_utils import tokenizer_image_token, get_model_name_from_path
 from llava.conversation import conv_templates
 from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from llava.model.builder import load_pretrained_model
-import sys,os,json
 from collections import Counter
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from Utils.utils import normalize_to_yesno
 
-def get_input_ids():
-        qs = "Are the signs far from the tractor in this photo? Please answer yes or no." #TODO is hardcoded
-        model_path = "/home/as37puta/llava-v1.5-13b" #TODO hardcoded model path
-        model_name = get_model_name_from_path(model_path)
-        tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, None, model_name, device_map="auto")
+def get_input_ids(): #TODO Remove?
+    qs = "Are the signs far from the tractor in this photo? Please answer yes or no." #TODO is hardcoded
+    model_path = "/home/as37puta/llava-v1.5-13b" #TODO hardcoded model path
+    model_name = get_model_name_from_path(model_path)
+    tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, None, model_name, device_map="auto")
 
-        cur_prompt = qs
-        if model.config.mm_use_im_start_end:
-            qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
-        else:
-            qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
+    cur_prompt = qs
+    if model.config.mm_use_im_start_end:
+        qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
+    else:
+        qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
 
-        conv = conv_templates["vicuna_v1"].copy() #TODO hardcoded conv mode
-        conv.append_message(conv.roles[0], qs + " Please answer this question with one word.")
-        conv.append_message(conv.roles[1], None)
-        prompt = conv.get_prompt()
+    conv = conv_templates["vicuna_v1"].copy() #TODO hardcoded conv mode
+    conv.append_message(conv.roles[0], qs + " Please answer this question with one word.")
+    conv.append_message(conv.roles[1], None)
+    prompt = conv.get_prompt()
 
-        input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(model.device)
-        return input_ids
+    input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(model.device)
+    return input_ids
 
 def save_attention_maps(input_ids, tokenizer, raw_image, output_ids, outputs_attentions, prefix):
     # Calling from this file was just trying out, call from other file instead
@@ -190,10 +194,29 @@ line_counter = 1
 counts = Counter()
 
 def aggregate_counts_and_save(pred, label, cd_logits, next_token_logits, next_token_logits_cd, tokenizer, output_folder, experiment_name):
+    """
+    Saves logits to disk to be used for analysis and debugging
+
+    Args:
+        pred: int, predicted token ID
+        label: str, ground truth
+        cd_logits: Tensor, final logits from contrastive decoding after calibration
+        next_token_logits: Tensor, logits from original decoding
+        next_token_logits_cd: Tensor, logits from contrastive decoding before calibration
+        tokenizer: tokenizer for decoding token IDs
+        output_folder: str, folder to save results
+        experiment_name: str, name of the experiment for organizing saved results
+    """
+
+    global counts
+
     cd_logits = cd_logits.cpu()
     next_token_logits = next_token_logits.cpu()
     next_token_logits_cd = next_token_logits_cd.cpu()
-    global counts
+    
+    if label is None:
+        # print("Warning: label is None")
+        return 
     pred_norm = normalize_to_yesno(tokenizer.decode([pred]))
     label_norm = normalize_to_yesno(label)
     key=""
@@ -231,9 +254,9 @@ def aggregate_counts_and_save(pred, label, cd_logits, next_token_logits, next_to
         json.dump(counts, f, indent=4)  
     
     #save dict to file 
-    output_path = Path(output_folder) / f"{line_counter}_prediction_{key}.pt"
+    output_path = Path(output_folder) / f"{experiment_name}" / f"{line_counter}_prediction_{key}.pt"
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    # torch.save(save_dict, output_path). #commented for now to save space
+    torch.save(save_dict, output_path)
 
 
 def calculate_entropy(logits: torch.Tensor, k: int = -1) -> float:
@@ -242,56 +265,21 @@ def calculate_entropy(logits: torch.Tensor, k: int = -1) -> float:
     
     Args:
         probs: Tensor of shape (vocab_size,)
-        k: Number of top probabilities to consider for entropy calculation.
+        k: Number of top probabilities to consider for entropy calculation. -1: all probabilities.
         
     Returns:
-        Entropy value of the top-k probabilities.
+        Entropy value of all/top-k probabilities.
     """
 
     probs = nn.functional.softmax(logits, dim=-1)
     if k > 0:
+        # Normalize to sum to 1 after selecting top-k probabilities
         top_k_probs, _ = torch.topk(probs, k)
-        top_k_probs = top_k_probs / top_k_probs.sum()  # Normalize to sum to 1
-        entropy = -torch.sum(top_k_probs * torch.log(top_k_probs + 1e-10)).item()  # Add small value to avoid log(0)
+        top_k_probs = top_k_probs / top_k_probs.sum()  
+        entropy = -torch.sum(top_k_probs * torch.log(top_k_probs + 1e-10)).item()  # Adding small value to avoid log(0)
     else:
         entropy = -torch.sum(probs * torch.log(probs + 1e-10)).item()
     return entropy
-
-# def _save_token_distribution(logits: torch.Tensor, output_folder: str, label: str,tokenizer, k: int = 10):
-#     """
-#     Save the entire probability distribution tensor from logits.
-#     Assumes batch_size=1.
-    
-#     Args:
-#         logits: Tensor of shape (1, vocab_size)
-#         output_folder: Path to folder where results will be saved (directory will be created if needed)
-#         label: Label for this set of tokens (e.g., "next_token_logits" or "next_token_logits_cd")
-#         tokenizer: Tokenizer used to decode token IDs
-#         k: Number of top tokens to extract for console output only
-#     """
-#     # Move to CPU for processing
-#     logits = logits.cpu()
-    
-#     # Assert batch_size == 1
-#     assert logits.shape[0] == 1, f"Expected batch_size=1, but got {logits.shape[0]}"
-
-#     # Convert logits to probability distribution
-#     probs = nn.functional.softmax(logits[0], dim=-1)
-#     label += "_softmaxed" # to avoid any confusion
-    
-#     # Save the full probability distribution tensor
-#     output_path = Path(output_folder) / f"{label}.pt"
-#     output_path.parent.mkdir(parents=True, exist_ok=True)
-#     torch.save(probs, output_path)
-    
-#     # Print top-k to console for quick inspection
-#     print(f"\n{label}:", flush=True)
-#     top_k_values, top_k_indices = torch.topk(probs, k)
-#     for rank in range(k):
-#         token_id = top_k_indices[rank].item()
-#         token = tokenizer.decode([token_id])
-#         prob = top_k_values[rank].item()
-#         print(f"  Rank {rank + 1}: token={token}, prob={prob:.4f}", flush=True)
 
 def sample(
     self,
@@ -328,6 +316,8 @@ def sample(
     eos_token_id = eos_token_id if eos_token_id is not None else self.generation_config.eos_token_id
 
     tokenizer = getattr(self, "_vcd_tokenizer") #Adding tokenizer for logging and debugging, can be safely removed later.
+    label = getattr(self.generation_config, "label") #get label from generation config for logging
+
     if isinstance(eos_token_id, int):
         eos_token_id = [eos_token_id]
     eos_token_id_tensor = torch.tensor(eos_token_id).to(input_ids.device) if eos_token_id is not None else None
@@ -362,7 +352,7 @@ def sample(
     unfinished_sequences = torch.ones(input_ids.shape[0], dtype=torch.long, device=input_ids.device)
 
     this_peer_finished = False  # used by synced_gpus only
-    model_kwargs_cd = model_kwargs.copy() # copy model_kwargs for cd only for the first forward process
+    model_kwargs_cd = copy.deepcopy(model_kwargs) # model_kwargs.copy() # copy model_kwargs for cd only for the first forward process
     first_token_generated = False  # Track if we've generated the first token
     output_folder = "/home/mt45dumo/runenv/logits" #model_kwargs.get("token_logits_output_folder", None)  # Optional output folder path
     
@@ -380,7 +370,7 @@ def sample(
 
         # prepare model inputs
         model_inputs = self.prepare_inputs_for_generation(input_ids, **model_kwargs)
-        label = getattr(self.generation_config, "label") #get label from generation config for logging
+
         # forward pass to get next token
         outputs = self(
             **model_inputs,
@@ -424,6 +414,7 @@ def sample(
                 output_attentions=True,
                 output_hidden_states=output_hidden_states_wo_img,
             )
+
             #print("images_cd", type(model_kwargs.get("images_cd")))
             # save_attention_maps(
             #     input_ids=get_input_ids(), #TODO or input_ids, or model_inputs_cd
@@ -432,6 +423,7 @@ def sample(
             #     output_ids=outputs_cd.logits.argmax(-1), #TODO or outputs_cd.sequences
             #     outputs_attentions=outputs_cd.attentions
             # )
+
             next_token_logits_cd = outputs_cd.logits[:, -1, :]
 
             assert(torch.equal(next_token_logits_cd, next_token_logits) == False)
@@ -442,9 +434,7 @@ def sample(
             experiment_name = getattr(self.generation_config, "experiment_name", "default_experiment")
             
             # Log token distribution for CD logits (first token generation only)
-            # if not first_token_generated and output_folder is not None:
-            #     _save_token_distribution(next_token_logits_cd, output_folder, "next_token_logits_cd",tokenizer)
-               
+            
             # version 1  set cutoff for Adaptive Plausibility Constraints
             # probs = nn.functional.softmax(next_token_logits, dim=-1)
             # cutoff = cd_beta * probs.max(dim=-1, keepdim=True).values
@@ -460,14 +450,6 @@ def sample(
             cd_logits = logits_processor(input_ids, cd_logits)
             cd_logits = logits_warper(input_ids, cd_logits)
 
-            # Log token distribution for CD probs (first token generation only)
-            if not first_token_generated and output_folder is not None:
-                # Remove batch dimension for saving
-                if cd_logits.shape[0] == 1:
-                    cd_logits_output = cd_logits[0]
-                else:
-                    print(f"Warning: Expected batch_size=1 for cd_logits, but got {cd_logits.shape[0]}")
-                    cd_logits_output = cd_logits[0]
 
             next_token_scores = cd_logits
             cd_probs = nn.functional.softmax(cd_logits, dim=-1)
@@ -491,7 +473,6 @@ def sample(
                 )
                 if self.config.is_encoder_decoder:
                     cross_attentions += (outputs.cross_attentions,)
-
             if output_hidden_states:
                 decoder_hidden_states += (
                     (outputs.decoder_hidden_states,)
@@ -566,9 +547,6 @@ def sample(
     else:
         return input_ids
 
-def patched_validate_model_kwargs(self, model_kwargs):
-    return model_kwargs
-
 def _stash_vcd_to_config(self, kwargs: dict):
     for k in ("cd_alpha", "cd_beta", "label", "experiment_name"):  #Added extra params for debugging and logging.
         if k in kwargs:
@@ -580,7 +558,6 @@ def evolve_vcd_sampling():
     # sample is now a protected function in the latest Transformers library
     transformers.generation.utils.GenerationMixin._sample = sample
 
-    #transformers.generation.utils.GenerationMixin._validate_model_kwargs = patched_validate_model_kwargs
     _orig_generate = transformers.generation.utils.GenerationMixin.generate
     def _generate_patch(self, *args, **kwargs):
         vcd_tk = kwargs.pop("tokenizer")                #Saving tokenizer for logging and debugging
