@@ -591,7 +591,7 @@ def main():
         elif "multichoice" in stem or "mcq" in stem:
             #ToDo : handle MCQ lines where response is not a letter A-D and instead whole words.
             result = evaluate_mcq_choice(path, args.detailed_metrics)
-        elif "yes" in stem:
+        elif "yes" in stem or "yn" in stem:
             result = evaluate_yesno(path, args.detailed_metrics)
         else:
             print(f"Skipping unrecognized file (not YesNo or Multichoice or VQA): {path}")

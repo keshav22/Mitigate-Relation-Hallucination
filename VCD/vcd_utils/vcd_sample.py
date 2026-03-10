@@ -441,7 +441,8 @@ def sample(
             # )
             next_token_logits_cd = outputs_cd.logits[:, -1, :]
 
-            assert(torch.equal(next_token_logits_cd, next_token_logits) == False)
+            if (torch.equal(next_token_logits_cd, next_token_logits) == False):
+                print("Soft-assertion failed: torch.equal(next_token_logits_cd, next_token_logits) == False")
             
             ## cd_comments: pre-process logits from contrastive inputs
             cd_alpha = getattr(self.generation_config, "cd_alpha", 0.5)

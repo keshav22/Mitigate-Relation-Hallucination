@@ -26,7 +26,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch
+from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch, denoise_object
 from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling, save_attention_maps
 from attention_visualise_lvlm import AttentionVisualizer
 from PIL import ImageDraw
@@ -157,15 +157,34 @@ def eval_model(args):
 
             img_cd = tensor_to_img(image_tensor_cd)
             # img_cd.save(f"{PROJECT_HOME}/patched_images/{line_counter}.jpg")
-        elif args.cd_mode == "dino_cd":
+        elif args.cd_mode == "dino_cd" or args.cd_mode == "dino_cd_agla" or args.cd_mode == "dino_cd_extra_obj":
             img_id = line["image_id"]
             query = line["query_prompt"]
 
+            
+
+            agla_dino = True if args.cd_mode == "dino_cd_agla" else False
+            extra_obj_dino = True if args.cd_mode == "dino_cd_extra_obj" else False
+            
             if img_id not in gdino_boxes or query not in gdino_boxes[img_id]:
                 print(f"No GroundingDINO detections for {img_id}, using full CD fallback")
                 image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
             else:
                 detections = gdino_boxes[img_id][query]
+                
+                if extra_obj_dino:
+                    detections = [] #only detect what's not mentioned in current question
+                    for q, dets in gdino_boxes[img_id].items():
+                        if q == query: #already added
+                            continue
+                        for det in dets:
+                            #so strict to avoid false positive extra objects.
+                            words1 = det["matched_phrase"].split()
+                            result = any(word in query.split() for word in words1) #det["matched_phrase"] ∩ query
+                            if result:
+                                continue
+                            detections.append(det)
+                
                 if len(detections) !=0 and args.noise_target_mode == "single":
                     detections = [max(detections, key=lambda d: d["score"])]
 
@@ -173,9 +192,16 @@ def eval_model(args):
                 image_tensor_cd = orig_tensor.clone()
                 model_size = image_tensor.shape[-1]
 
+
                 # Store scaled bounding boxes for drawing
                 scaled_bbs = []
-
+                
+                if extra_obj_dino and detections == []:
+                    print(f"No extra objects detected by GroundingDINO for {img_id}, using full CD fallback")
+                    image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
+                if agla_dino:
+                    image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step) #init
+                
                 for det in detections:
                     orig_w = det["img_w"]
                     orig_h = det["img_h"]
@@ -202,13 +228,20 @@ def eval_model(args):
                     bb["w"] = max(1, min(bb["w"], model_size))
                     bb["h"] = max(1, min(bb["h"], model_size))
 
-                    # Apply noise to this bounding box
-                    image_tensor_cd = add_noise_patch(
-                        image_tensor_cd,
-                        args.noise_step,
-                        bb
-                    )
-
+                    if agla_dino:
+                        image_tensor_cd = denoise_object(
+                            image_tensor_cd,
+                            bb,
+                            orig_tensor
+                        )
+                    else:
+                        # Apply noise to this bounding box
+                        image_tensor_cd = add_noise_patch(
+                            image_tensor_cd,
+                            args.noise_step,
+                            bb
+                        )
+                    
                     # Store the scaled bounding box for drawing
                     scaled_bbs.append(bb)
                 attn_bbs = scaled_bbs
@@ -402,8 +435,8 @@ if __name__ == "__main__":
     parser.add_argument("--experiment_name", type=str, default="default_experiment")
     args = parser.parse_args()
 
-    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "dino_cd", "shuffle_cd", "flip_image"]:
-        raise RuntimeError(f"Invalid cd_mode {args.cd_mode}, should be one of patched_cd, full_cd, no_cd, shuffle_cd, flip_image")
+    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "dino_cd", "dino_cd_agla", "dino_cd_extra_obj", "shuffle_cd", "flip_image"]:
+        raise RuntimeError(f"Invalid cd_mode {args.cd_mode}, should be one of patched_cd, full_cd, no_cd, dino_cd, dino_cd_agla, dino_cd_extra_obj, shuffle_cd, flip_image")
     elif args.cd_mode == "patched_cd":
 
         global bounding_boxes
@@ -413,7 +446,7 @@ if __name__ == "__main__":
             bounding_boxes = json.load(f)
         with open(args.image_qn_obj_map, 'r') as f:
             image_qn_obj_map = json.load(f)
-    elif args.cd_mode == "dino_cd":
+    elif args.cd_mode == "dino_cd" or args.cd_mode == "dino_cd_agla" or args.cd_mode == "dino_cd_extra_obj":
         # Load GroundingDINO detections
         if args.gdino_jsonl is None:
             raise RuntimeError("Please provide gdino_jsonl for dino_cd mode")
@@ -424,14 +457,14 @@ if __name__ == "__main__":
         gdino_boxes = {}
         for item in gdino_lines:
             image_id = item["image_id"]
-            query = item["query_prompt"]
+            query = item["org_query_prompt"]
             detections = item.get("detections", [])
         
             if image_id not in gdino_boxes:
                 gdino_boxes[image_id] = {}
         
             gdino_boxes[image_id][query] = detections
-        print("Grounding Dino Mapping: ", gdino_boxes)
+        #print("Grounding Dino Mapping: ", gdino_boxes)
 
     elif args.cd_mode == "shuffle_cd" or args.cd_mode == "flip_image":
         if args.patch_size is None:
