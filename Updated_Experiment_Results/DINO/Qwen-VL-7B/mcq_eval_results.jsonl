@@ -1,0 +1,156 @@
+{
+    "file": "qwenvl_dino500_mcq_multiple_noise.jsonl",
+    "title": "qwenvl_dino500_mcq_multiple_noise",
+    "summary": {
+      "total_lines": 6950,
+      "evaluated_lines": 6907,
+      "accuracy_over_all_lines": 0.656978417266187,
+      "accuracy_over_evaluated_lines": 0.6610684812509049,
+      "hallucination_rate_over_all_lines": 0.343021582733813,
+      "hallucination_rate_over_evaluated_lines": 0.3389315187490951,
+      "macro_precision": 0.7111748610577255,
+      "macro_recall": 0.6587970773207276,
+      "macro_f1": 0.6589583021902039,
+      "per_class_mcq": {
+        "a": {
+          "precision": 0.6050260787102892,
+          "recall": 0.740139211136891,
+          "f1": 0.6657970258283329
+        },
+        "b": {
+          "precision": 0.8611111111111112,
+          "recall": 0.5066585956416465,
+          "f1": 0.6379573170731707
+        },
+        "c": {
+          "precision": 0.8177257525083612,
+          "recall": 0.5559977259806709,
+          "f1": 0.6619289340101524
+        },
+        "d": {
+          "precision": 0.5608365019011406,
+          "recall": 0.832392776523702,
+          "f1": 0.6701499318491595
+        }
+      },
+      "accuracy_by_type": {
+        "cognitive": 0.7694409415720891,
+        "perception": 0.4211261051651931,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.2305590584279109,
+        "perception": 0.5788738948348069,
+        "unknown": null
+      },
+      "parse_errors_label": 0,
+      "parse_errors_response": 43,
+      "ambiguous_responses": [
+        "anch",
+        "approaching",
+        "attaching",
+        "blowing",
+        "casting",
+        "containing",
+        "displaying",
+        "drinking",
+        "enjoying",
+        "forming",
+        "h",
+        "hitting",
+        "holding",
+        "laying",
+        "lining",
+        "looking",
+        "raising",
+        "reading",
+        "riding",
+        "row",
+        "securing",
+        "separating",
+        "showing",
+        "sniff",
+        "steering",
+        "striking",
+        "supporting",
+        "waiting",
+        "walking"
+      ]
+    }
+  }
+  {
+    "file": "qwenvl_dino500_mcq_single_noise.jsonl",
+    "title": "qwenvl_dino500_mcq_single_noise",
+    "summary": {
+      "total_lines": 6950,
+      "evaluated_lines": 6909,
+      "accuracy_over_all_lines": 0.6594244604316547,
+      "accuracy_over_evaluated_lines": 0.6633376754957302,
+      "hallucination_rate_over_all_lines": 0.3405755395683453,
+      "hallucination_rate_over_evaluated_lines": 0.3366623245042698,
+      "macro_precision": 0.7136593795322395,
+      "macro_recall": 0.6609746020258997,
+      "macro_f1": 0.6610565339516665,
+      "per_class_mcq": {
+        "a": {
+          "precision": 0.6013102480112307,
+          "recall": 0.7444959443800695,
+          "f1": 0.6652860471136421
+        },
+        "b": {
+          "precision": 0.8646694214876033,
+          "recall": 0.5072727272727273,
+          "f1": 0.6394194041252866
+        },
+        "c": {
+          "precision": 0.821608040201005,
+          "recall": 0.5573863636363636,
+          "f1": 0.6641841570751523
+        },
+        "d": {
+          "precision": 0.5670498084291188,
+          "recall": 0.8347433728144388,
+          "f1": 0.675336527492585
+        }
+      },
+      "accuracy_by_type": {
+        "cognitive": 0.7712665406427222,
+        "perception": 0.4241154562383613,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.22873345935727785,
+        "perception": 0.5758845437616387,
+        "unknown": null
+      },
+      "parse_errors_label": 0,
+      "parse_errors_response": 41,
+      "ambiguous_responses": [
+        "approaching",
+        "blowing",
+        "casting",
+        "containing",
+        "displaying",
+        "drinking",
+        "enjoying",
+        "forming",
+        "h",
+        "hitting",
+        "holding",
+        "laying",
+        "lining",
+        "looking",
+        "lying",
+        "reading",
+        "riding",
+        "row",
+        "securing",
+        "separating",
+        "showing",
+        "sniff",
+        "steering",
+        "striking",
+        "waiting"
+      ]
+    }
+  }
