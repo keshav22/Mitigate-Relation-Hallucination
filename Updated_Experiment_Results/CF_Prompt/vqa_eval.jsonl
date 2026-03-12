@@ -1,0 +1,19 @@
+{
+    "file": "/cf_vqa.jsonl",
+    "title": "cf_vqa",
+    "summary": {
+      "hallucination_rate_over_all": 0.5507186858316222,
+      "hallucination_rate_perception": 0.5204651162790698,
+      "hallucination_rate_cognitive": 0.5746323529411764
+    },
+    "counts": {
+      "perception": 2150,
+      "equivalent": 2188,
+      "perception_equivalent": 1031,
+      "different": 2682,
+      "perception_different": 1119,
+      "cognitive": 2720,
+      "cognitive_equivalent": 1157,
+      "cognitive_different": 1563
+    }
+}
