@@ -1,0 +1,136 @@
+{
+    "file": "llava_13b_dino500_yn_single.jsonl",
+    "title": "llava_13b_dino500_yn_single",
+    "summary": {
+      "total_lines": 9740,
+      "evaluated_pairs": 9740,
+      "precision": 0.5854531001589826,
+      "recall": 0.9073921971252566,
+      "f1": 0.711708809792237,
+      "correct": 6160,
+      "incorrect": 3580,
+      "pred_missing_or_ambiguous_total": 0,
+      "pred_missing_or_ambiguous_label_yes": 0,
+      "pred_missing_or_ambiguous_label_no": 0,
+      "gold_missing_or_ambiguous": 0,
+      "parse_error": 0,
+      "accuracy_over_evaluated": 0.6324435318275154,
+      "accuracy_over_all_lines": 0.6324435318275154,
+      "accuracy_by_type": {
+        "cognitive": 0.6590073529411765,
+        "perception": 0.5988372093023255,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.3409926470588235,
+        "perception": 0.40116279069767447,
+        "unknown": null
+      },
+      "hallucination_rate_over_evaluated": 0.36755646817248455,
+      "hallucination_rate_over_all_lines": 0.36755646817248455,
+      "ambiguous_gold_examples": [],
+      "ambiguous_pred_examples": []
+    }
+  }
+  {
+    "file": "llava_13b_dino500_no_rltn_yn_single.jsonl",
+    "title": "llava_13b_dino500_no_rltn_yn_single",
+    "summary": {
+      "total_lines": 9740,
+      "evaluated_pairs": 9740,
+      "precision": 0.5851162790697675,
+      "recall": 0.9041067761806981,
+      "f1": 0.7104477611940299,
+      "correct": 6151,
+      "incorrect": 3589,
+      "pred_missing_or_ambiguous_total": 0,
+      "pred_missing_or_ambiguous_label_yes": 0,
+      "pred_missing_or_ambiguous_label_no": 0,
+      "gold_missing_or_ambiguous": 0,
+      "parse_error": 0,
+      "accuracy_over_evaluated": 0.6315195071868583,
+      "accuracy_over_all_lines": 0.6315195071868583,
+      "accuracy_by_type": {
+        "cognitive": 0.658639705882353,
+        "perception": 0.5972093023255814,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.341360294117647,
+        "perception": 0.40279069767441855,
+        "unknown": null
+      },
+      "hallucination_rate_over_evaluated": 0.36848049281314166,
+      "hallucination_rate_over_all_lines": 0.36848049281314166,
+      "ambiguous_gold_examples": [],
+      "ambiguous_pred_examples": []
+    }
+  }
+  {
+    "file": "llava_13b_dino500_yn_multi.jsonl",
+    "title": "llava_13b_dino500_yn_multi",
+    "summary": {
+      "total_lines": 9740,
+      "evaluated_pairs": 9740,
+      "precision": 0.58414132022845,
+      "recall": 0.9030800821355236,
+      "f1": 0.7094120493588193,
+      "correct": 6137,
+      "incorrect": 3603,
+      "pred_missing_or_ambiguous_total": 0,
+      "pred_missing_or_ambiguous_label_yes": 0,
+      "pred_missing_or_ambiguous_label_no": 0,
+      "gold_missing_or_ambiguous": 0,
+      "parse_error": 0,
+      "accuracy_over_evaluated": 0.6300821355236139,
+      "accuracy_over_all_lines": 0.6300821355236139,
+      "accuracy_by_type": {
+        "cognitive": 0.6545955882352941,
+        "perception": 0.5990697674418605,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.34540441176470593,
+        "perception": 0.40093023255813953,
+        "unknown": null
+      },
+      "hallucination_rate_over_evaluated": 0.3699178644763861,
+      "hallucination_rate_over_all_lines": 0.3699178644763861,
+      "ambiguous_gold_examples": [],
+      "ambiguous_pred_examples": []
+    }
+  }
+  {
+    "file": "llava_13b_dino500_no_rltn_yn_multi.jsonl",
+    "title": "llava_13b_dino500_no_rltn_yn_multi",
+    "summary": {
+      "total_lines": 9740,
+      "evaluated_pairs": 9740,
+      "precision": 0.582251655629139,
+      "recall": 0.9026694045174538,
+      "f1": 0.7078904991948469,
+      "correct": 6112,
+      "incorrect": 3628,
+      "pred_missing_or_ambiguous_total": 0,
+      "pred_missing_or_ambiguous_label_yes": 0,
+      "pred_missing_or_ambiguous_label_no": 0,
+      "gold_missing_or_ambiguous": 0,
+      "parse_error": 0,
+      "accuracy_over_evaluated": 0.6275154004106777,
+      "accuracy_over_all_lines": 0.6275154004106777,
+      "accuracy_by_type": {
+        "cognitive": 0.6520220588235294,
+        "perception": 0.5965116279069768,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.34797794117647063,
+        "perception": 0.40348837209302324,
+        "unknown": null
+      },
+      "hallucination_rate_over_evaluated": 0.37248459958932234,
+      "hallucination_rate_over_all_lines": 0.37248459958932234,
+      "ambiguous_gold_examples": [],
+      "ambiguous_pred_examples": []
+    }
+  }

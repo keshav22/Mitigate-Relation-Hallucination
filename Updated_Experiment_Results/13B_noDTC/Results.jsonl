@@ -1,0 +1,51 @@
+{
+    "file": "/llava13b_MultiChoice_with_rt.jsonl",
+    "title": "Multichoice",
+    "summary": {
+      "total_lines": 6950,
+      "evaluated_lines": 6947,
+      "accuracy_over_all_lines": 0.6142446043165468,
+      "accuracy_over_evaluated_lines": 0.6145098603713833,
+      "hallucination_rate_over_all_lines": 0.3857553956834532,
+      "hallucination_rate_over_evaluated_lines": 0.38549013962861667,
+      "macro_precision": 0.6951433390976042,
+      "macro_recall": 0.6111646734999691,
+      "macro_f1": 0.6036661106209293,
+      "per_class_mcq": {
+        "a": {
+          "precision": 0.7053789731051344,
+          "recall": 0.6651296829971182,
+          "f1": 0.6846633046573717
+        },
+        "b": {
+          "precision": 0.8810511756569848,
+          "recall": 0.38007159904534604,
+          "f1": 0.5310546060858691
+        },
+        "c": {
+          "precision": 0.711304347826087,
+          "recall": 0.4647727272727273,
+          "f1": 0.5621993127147766
+        },
+        "d": {
+          "precision": 0.4828388598022106,
+          "recall": 0.9346846846846847,
+          "f1": 0.6367472190257001
+        }
+      },
+      "accuracy_by_type": {
+        "cognitive": 0.7077340004169272,
+        "perception": 0.40651162790697676,
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.29226599958307276,
+        "perception": 0.5934883720930233,
+      },
+      "parse_errors_label": 0,
+      "parse_errors_response": 3,
+      "ambiguous_responses": [
+        "In the",
+        "There is"
+      ]
+    }
+  }
