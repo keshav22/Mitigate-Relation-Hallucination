@@ -166,26 +166,35 @@ def eval_model(args):
             agla_dino = True if args.cd_mode == "dino_cd_agla" else False
             extra_obj_dino = True if args.cd_mode == "dino_cd_extra_obj" else False
             
-            if img_id not in gdino_boxes or query not in gdino_boxes[img_id]:
+            if img_id not in gdino_boxes or ((not args.single_qn_per_bbox) and (((query not in gdino_boxes[img_id]) or (gdino_boxes[img_id][query] == [])) and not extra_obj_dino)):
                 print(f"No GroundingDINO detections for {img_id}, using full CD fallback")
                 image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
             else:
-                detections = gdino_boxes[img_id][query]
+                detections = gdino_boxes[img_id] if args.single_qn_per_bbox else gdino_boxes[img_id][query]
                 
                 if extra_obj_dino:
-                    detections = [] #only detect what's not mentioned in current question
-                    for q, dets in gdino_boxes[img_id].items():
-                        if q == query: #already added
-                            continue
-                        for det in dets:
+                    if args.single_qn_per_bbox:
+                        for det in detections: #this is the same as the inner loop below
                             #so strict to avoid false positive extra objects.
                             words1 = det["matched_phrase"].split()
                             result = any(word in query.split() for word in words1) #det["matched_phrase"] ∩ query
                             if result:
                                 continue
                             detections.append(det)
+                    else:
+                        detections = [] #only detect what's not mentioned in current question
+                        for q, dets in gdino_boxes[img_id].items():
+                            if q == query: #already added
+                                continue
+                            for det in dets:
+                                #so strict to avoid false positive extra objects.
+                                words1 = det["matched_phrase"].split()
+                                result = any(word in query.split() for word in words1) #det["matched_phrase"] ∩ query
+                                if result:
+                                    continue
+                                detections.append(det)
                 
-                if len(detections) !=0 and args.noise_target_mode == "single":
+                if len(detections) !=0 and args.noise_target_mode == "single" and not extra_obj_dino:
                     detections = [max(detections, key=lambda d: d["score"])]
 
                 orig_tensor = image_tensor.clone()
@@ -246,8 +255,8 @@ def eval_model(args):
                     scaled_bbs.append(bb)
                 attn_bbs = scaled_bbs
 
-                debug_dir = args.debug_dir
-                os.makedirs(debug_dir, exist_ok=True)
+                if args.debug_dir:
+                    os.makedirs(args.debug_dir, exist_ok=True)
 
                 mean = torch.tensor([0.485, 0.456, 0.406], device=image_tensor_cd.device).view(3, 1, 1)
                 std = torch.tensor([0.229, 0.224, 0.225], device=image_tensor_cd.device).view(3, 1, 1)
@@ -266,8 +275,9 @@ def eval_model(args):
                         outline="red",
                         width=3
                     )
-
-                noisy_img.save(f"{debug_dir}/{img_id}_noise.jpg")
+                
+                if args.debug_dir:
+                    noisy_img.save(f"{args.debug_dir}/{img_id}_noise.jpg")
         elif args.cd_mode == "full_cd":
             image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
         elif args.cd_mode == "no_cd":
@@ -343,9 +353,8 @@ def eval_model(args):
 
         #new
         if VISUALIZE_ATTENTION:
-            layer_count = 18
-            layer_start = 15
-            layer_end = 32
+            layer_start = 1
+            layer_end = 4
 
             attention_visualizer = AttentionVisualizer(
                                 input_ids[0],
@@ -359,7 +368,7 @@ def eval_model(args):
                                 attention_start_index=0,
                                 attn_bbs=attn_bbs
                             )
-            attention_visualizer.visualise_layer_attention_heatmap(use_layer_count=layer_count)
+            attention_visualizer.visualise_layer_attention_heatmap(layer_start=layer_start, layer_end=layer_end)
             attn_metric_orig = attention_visualizer.get_attention_metric(layer_start=layer_start, layer_end=layer_end)
 
             attention_visualizer_noise_image = AttentionVisualizer(
@@ -375,7 +384,7 @@ def eval_model(args):
                                 attn_bbs=attn_bbs,
                                 add_folder_name="_cd"
                             )
-            attention_visualizer_noise_image.visualise_layer_attention_heatmap(use_layer_count=layer_count)
+            attention_visualizer_noise_image.visualise_layer_attention_heatmap(layer_start=layer_start, layer_end=layer_end)
             attn_metric_noised = attention_visualizer_noise_image.get_attention_metric(layer_start=layer_start, layer_end=layer_end)
 
         outputs = tokenizer.batch_decode(
@@ -433,6 +442,7 @@ if __name__ == "__main__":
     parser.add_argument("--noise_target_mode", type=str, default="single")
     parser.add_argument("--debug_dir", type=str)
     parser.add_argument("--experiment_name", type=str, default="default_experiment")
+    parser.add_argument("--single_qn_per_bbox", action='store_true', default=False, help="Use an old bbox file that only has single bbox set per image")
     args = parser.parse_args()
 
     if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "dino_cd", "dino_cd_agla", "dino_cd_extra_obj", "shuffle_cd", "flip_image"]:
@@ -462,8 +472,11 @@ if __name__ == "__main__":
         
             if image_id not in gdino_boxes:
                 gdino_boxes[image_id] = {}
-        
-            gdino_boxes[image_id][query] = detections
+            
+            if args.single_qn_per_bbox:
+                gdino_boxes[image_id] = detections
+            else:
+                gdino_boxes[image_id][query] = detections
         #print("Grounding Dino Mapping: ", gdino_boxes)
 
     elif args.cd_mode == "shuffle_cd" or args.cd_mode == "flip_image":

@@ -45,11 +45,11 @@ class AttentionVisualizer:
                 self.image_token_index = index
                 break
 
-    def get_attention_metric(self, layer_start: int = 39, layer_end: int = 40):
+    def get_attention_metric(self, layer_start: int = 40, layer_end: int = 40): #1-indexed, inclusive start, inclusive end
         if layer_end > self.total_layers:
             print("layer_end exceeds total layers")
             exit(1)
-        selected_layers = range(layer_start, layer_end)
+        selected_layers = range(layer_start-1, layer_end)
         
         token_attention = self.attentions[self.attention_start_index]
         avg_mean_of_attention = torch.stack([
@@ -69,12 +69,24 @@ class AttentionVisualizer:
         
         return self.calculate_attention_metric(avg_mean_of_attention)
 
-    def visualise_layer_attention_heatmap(self, use_layer_count: int = 1, layer_num: int = -1):
+    def visualise_layer_attention_heatmap(self, layer_num: int = -1, layer_start: int = 40, layer_end: int = 40): #layer_[start|end]: 1-indexed, inclusive start, inclusive end
         token_attention = self.attentions[-1]
+
+        layer_count = layer_end - layer_start + 1
+        if layer_start < 1:
+            print("layer_start should be >= 1")
+            exit(1)
+        if layer_end > self.total_layers:
+            print("layer_end exceeds total layers")
+            exit(1)
+        if layer_count < 1:
+            print("layer_end should be >= layer_start")
+            exit(1)
+
         
         if self.all_generated_tokens:
             
-            selected_layers = range(self.total_layers - use_layer_count, self.total_layers)
+            selected_layers = range(layer_start-1, layer_end)
             
             token_attention = self.attentions[self.attention_start_index]
             avg_mean_of_attention = torch.stack([
@@ -103,15 +115,15 @@ class AttentionVisualizer:
             else:
                 pre_text = "unk-qn-type_"
             
-            self.save_image_atten_map_plot(avg_mean_of_attention, f'{pre_text}all_generated_token_avg_{use_layer_count}_layers')
-        elif use_layer_count > 1:
-            selected_layers = range(self.total_layers - use_layer_count, self.total_layers)
+            self.save_image_atten_map_plot(avg_mean_of_attention, f'{pre_text}all_generated_token_layers_{layer_start}-{layer_end}_avg')
+        elif layer_count > 1: #single generated token, but multiple layers
+            selected_layers = range(layer_start-1, layer_end)
             avg_mean_of_attention = torch.stack([
                     token_attention[l].mean(dim=1)  # avg heads
                     for l in selected_layers
                 ]).mean(dim=0)[0]
             
-            self.save_image_atten_map_plot(avg_mean_of_attention, f'last_{use_layer_count}_layer_avg')
+            self.save_image_atten_map_plot(avg_mean_of_attention, f'last_{layer_count}_layers_avg')
         else:
             last_layer_attention = token_attention[layer_num][0]
 
