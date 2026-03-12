@@ -1,5 +1,6 @@
 ENABLE_ATTENTION_MAP = False
 AGGREGATE_COUNTS = False
+ENABLE_SAVE_LOGITS = True
 import copy
 import inspect
 import warnings
@@ -193,7 +194,7 @@ def save_attention_maps(input_ids, tokenizer, raw_image, output_ids, outputs_att
         plt.show()
         plt.savefig(prefix+"attention_image_overlay_skate.jpg", dpi=300)
 
-line_counter = 1
+line_counter = 0
 counts = Counter()
 
 def aggregate_counts_and_save(pred, label, cd_logits, next_token_logits, next_token_logits_cd, tokenizer, output_folder, experiment_name):
@@ -264,41 +265,45 @@ def calculate_entropy(logits: torch.Tensor, k: int = -1) -> float:
         entropy = -torch.sum(probs * torch.log(probs + 1e-10)).item()
     return entropy
 
-# def _save_token_distribution(logits: torch.Tensor, output_folder: str, label: str,tokenizer, k: int = 10):
-#     """
-#     Save the entire probability distribution tensor from logits.
-#     Assumes batch_size=1.
+def _save_token_distribution(logits: torch.Tensor, output_folder: str, label: str, tokenizer, k: int = 10):
+    """
+    Save the entire probability distribution tensor from logits.
+    Assumes batch_size=1.
 
-#     Args:
-#         logits: Tensor of shape (1, vocab_size)
-#         output_folder: Path to folder where results will be saved (directory will be created if needed)
-#         label: Label for this set of tokens (e.g., "next_token_logits" or "next_token_logits_cd")
-#         tokenizer: Tokenizer used to decode token IDs
-#         k: Number of top tokens to extract for console output only
-#     """
-#     # Move to CPU for processing
-#     logits = logits.cpu()
+    Args:
+        logits: Tensor of shape (1, vocab_size)
+        output_folder: Path to folder where results will be saved (directory will be created if needed)
+        label: Label for this set of tokens (e.g., "next_token_logits" or "next_token_logits_cd")
+        tokenizer: Tokenizer used to decode token IDs
+        k: Number of top tokens to extract for console output only
+    """
+    if not ENABLE_SAVE_LOGITS:
+        return
 
-#     # Assert batch_size == 1
-#     assert logits.shape[0] == 1, f"Expected batch_size=1, but got {logits.shape[0]}"
+    # Move to CPU for processing
+    logits = logits.cpu()
 
-#     # Convert logits to probability distribution
-#     probs = nn.functional.softmax(logits[0], dim=-1)
-#     label += "_softmaxed" # to avoid any confusion
+    # Assert batch_size == 1
+    assert logits.shape[0] == 1, f"Expected batch_size=1, but got {logits.shape[0]}"
 
-#     # Save the full probability distribution tensor
-#     output_path = Path(output_folder) / f"{label}.pt"
-#     output_path.parent.mkdir(parents=True, exist_ok=True)
-#     torch.save(probs, output_path)
+    # Convert logits to probability distribution
+    probs = logits[0]
+    #probs = nn.functional.softmax(logits[0], dim=-1)
+    #label += "_softmaxed" # to avoid any confusion
 
-#     # Print top-k to console for quick inspection
-#     print(f"\n{label}:", flush=True)
-#     top_k_values, top_k_indices = torch.topk(probs, k)
-#     for rank in range(k):
-#         token_id = top_k_indices[rank].item()
-#         token = tokenizer.decode([token_id])
-#         prob = top_k_values[rank].item()
-#         print(f"  Rank {rank + 1}: token={token}, prob={prob:.4f}", flush=True)
+    # Save the full probability distribution tensor
+    output_path = Path(output_folder) / f"{line_counter}_{label}.pt"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(probs, output_path)
+
+    # Print top-k to console for quick inspection
+    print(f"\n{label}:", flush=True)
+    top_k_values, top_k_indices = torch.topk(probs, k)
+    for rank in range(k):
+        token_id = top_k_indices[rank].item()
+        token = tokenizer.decode([token_id])
+        prob = top_k_values[rank].item()
+        print(f"  Rank {rank + 1}: token={token}, prob={prob:.4f}", flush=True)
 
 def sample(
     self,
@@ -370,8 +375,15 @@ def sample(
 
     this_peer_finished = False  # used by synced_gpus only
     model_kwargs_cd = model_kwargs.copy() # copy model_kwargs for cd only for the first forward process
+    
+    do_for_current_token = True
     first_token_generated = False  # Track if we've generated the first token
+    do_for_first_token_only = False
+    
     output_folder = "/home/mt45dumo/runenv/logits" #model_kwargs.get("token_logits_output_folder", None)  # Optional output folder path
+
+    global line_counter
+    line_counter += 1
     
     # auto-regressive generation
     while True:
@@ -399,12 +411,11 @@ def sample(
         if synced_gpus and this_peer_finished:
             continue  # don't waste resources running the code we don't need
 
-        next_token_logits = outputs.logits[:, -1, :]
-        
+        next_token_logits = outputs.logits[:, -1, :]        
+
         # Log token distribution for the first token generation
-        if not first_token_generated and output_folder is not None:
-            global line_counter
-            line_counter += 1
+        if do_for_current_token and output_folder is not None:
+            _save_token_distribution(next_token_logits, output_folder, "next_token_logits", tokenizer)
 
         ## For contrastive decoding initial
         use_cd = model_kwargs.get("images_cd") != None
@@ -450,8 +461,8 @@ def sample(
             experiment_name = getattr(self.generation_config, "experiment_name", "default_experiment")
 
             # Log token distribution for CD logits (first token generation only)
-            # if not first_token_generated and output_folder is not None:
-            #     _save_token_distribution(next_token_logits_cd, output_folder, "next_token_logits_cd",tokenizer)
+            if do_for_current_token and output_folder is not None:
+                _save_token_distribution(next_token_logits_cd, output_folder, "next_token_logits_cd", tokenizer)
 
             # version 1  set cutoff for Adaptive Plausibility Constraints
             # probs = nn.functional.softmax(next_token_logits, dim=-1)
@@ -469,13 +480,15 @@ def sample(
             cd_logits = logits_warper(input_ids, cd_logits)
 
             # Log token distribution for CD probs (first token generation only)
-            if not first_token_generated and output_folder is not None:
-                # Remove batch dimension for saving
-                if cd_logits.shape[0] == 1:
-                    cd_logits_output = cd_logits[0]
-                else:
-                    print(f"Warning: Expected batch_size=1 for cd_logits, but got {cd_logits.shape[0]}")
-                    cd_logits_output = cd_logits[0]
+            if do_for_current_token and output_folder is not None:
+                for (cd_logits, logit_name) in [(diffs, "cd_logits_pre_apc"), (cd_logits, "cd_logits_post_apc")]:
+                    # Remove batch dimension for saving
+                    if cd_logits.shape[0] == 1:
+                        cd_logits_output = cd_logits[0]
+                    else:
+                        print(f"Warning: Expected batch_size=1 for cd_logits, but got {cd_logits.shape[0]}")
+                        cd_logits_output = cd_logits[0]
+                    _save_token_distribution(cd_logits_output.unsqueeze(0), output_folder, logit_name, tokenizer)
 
             next_token_scores = cd_logits
             cd_probs = nn.functional.softmax(cd_logits, dim=-1)
@@ -524,9 +537,11 @@ def sample(
             streamer.put(next_tokens.cpu())
         
         # Mark first token as generated after we've logged the logits
-        if not first_token_generated and use_cd and AGGREGATE_COUNTS:
+        if do_for_current_token and use_cd and AGGREGATE_COUNTS:
             aggregate_counts_and_save(pred=next_tokens.item(), label=label, cd_logits=cd_logits_copy, next_token_logits=next_token_logits, next_token_logits_cd=next_token_logits_cd,tokenizer=tokenizer, output_folder=output_folder, experiment_name=experiment_name)
         first_token_generated = True
+        if do_for_first_token_only:
+            do_for_current_token = False
         
         model_kwargs = self._update_model_kwargs_for_generation(
             outputs, model_kwargs, is_encoder_decoder=self.config.is_encoder_decoder
