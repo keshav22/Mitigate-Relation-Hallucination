@@ -1,44 +1,44 @@
 {
-    "file": "/qwenvl_dino500_vqa_single_noise.jsonl",
-    "title": "qwenvl_dino500_vqa_single_noise",
-    "summary": {
-      "hallucination_rate_over_all": 0.6248459958932239,
-      "hallucination_rate_perception": 0.6483720930232558,
-      "hallucination_rate_cognitive": 0.60625,
-      "ambiguous": 2
-    },
-    "counts": {
-      "perception": 2150,
-      "equivalent": 1825,
-      "perception_equivalent": 755,
-      "different": 3043,
-      "perception_different": 1394,
-      "ambiguous": 2,
-      "perception_ambiguous": 1,
-      "cognitive": 2720,
-      "cognitive_equivalent": 1070,
-      "cognitive_different": 1649,
-      "cognitive_ambiguous": 1
-    }
+  "file": "/qwenvl_dino500_vqa_single_noise.jsonl",
+  "title": "qwenvl_dino500_vqa_single_noise",
+  "summary": {
+    "hallucination_rate_over_all": 0.624435318275154,
+    "hallucination_rate_perception": 0.6488372093023256,
+    "hallucination_rate_cognitive": 0.6051470588235294,
+    "ambiguous": 2
+  },
+  "counts": {
+    "perception": 2150,
+    "equivalent": 1827,
+    "perception_equivalent": 754,
+    "different": 3041,
+    "perception_different": 1395,
+    "ambiguous": 2,
+    "perception_ambiguous": 1,
+    "cognitive": 2720,
+    "cognitive_equivalent": 1073,
+    "cognitive_different": 1646,
+    "cognitive_ambiguous": 1
   }
-  {
+}
+{
     "file": "/qwenvl_dino500_vqa_multiple_noise.jsonl",
     "title": "qwenvl_dino500_vqa_multiple_noise",
     "summary": {
-      "hallucination_rate_over_all": 0.6248459958932239,
-      "hallucination_rate_perception": 0.6474418604651163,
-      "hallucination_rate_cognitive": 0.606985294117647,
+      "hallucination_rate_over_all": 0.6211498973305954,
+      "hallucination_rate_perception": 0.6432558139534884,
+      "hallucination_rate_cognitive": 0.6036764705882353,
       "ambiguous": 2
     },
     "counts": {
       "perception": 2150,
-      "equivalent": 1825,
-      "perception_equivalent": 758,
-      "different": 3043,
-      "perception_different": 1392,
+      "equivalent": 1843,
+      "perception_equivalent": 767,
+      "different": 3025,
+      "perception_different": 1383,
       "cognitive": 2720,
-      "cognitive_equivalent": 1067,
-      "cognitive_different": 1651,
+      "cognitive_equivalent": 1076,
+      "cognitive_different": 1642,
       "ambiguous": 2,
       "cognitive_ambiguous": 2
     }
