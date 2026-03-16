@@ -46,4 +46,4 @@ For better insights
 * Romila Singh
 * Manu Thomas
 
-[Final Report Link](./Report.pdf)
+[Final Report Link](./FinalReport.pdf)
