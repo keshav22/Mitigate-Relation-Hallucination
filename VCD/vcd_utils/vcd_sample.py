@@ -18,7 +18,15 @@ from transformers.generation.stopping_criteria import (
 )
 import transformers
 from transformers.generation.utils import SampleOutput
+from transformers.generation import SampleEncoderDecoderOutput
 
+from dataclasses import dataclass
+from transformers.generation.utils import SampleDecoderOnlyOutput
+
+@dataclass
+class MyGenerationOutput:
+    generation: SampleDecoderOnlyOutput
+    attention_cd: torch.Tensor or None
 
 
 def sample(
@@ -129,7 +137,8 @@ def sample(
             output_hidden_states if output_hidden_states is not None else self.generation_config.output_hidden_states
         )
         
-
+        attention_cd = () if (return_dict_in_generate and output_attentions) else None
+        
         if use_cd:
             ## cd_comments: forward pass of the model with distorted image input
             model_inputs_cd = self.prepare_inputs_for_generation_cd(input_ids, **model_kwargs_cd)
@@ -140,6 +149,13 @@ def sample(
                 output_hidden_states=output_hidden_states_wo_img,
             )
             next_token_logits_cd = outputs_cd.logits[:, -1, :]
+            
+            if attention_cd is not None:
+                attention_cd += (
+                        (outputs_cd.decoder_attentions,) if self.config.is_encoder_decoder else (outputs_cd.attentions,)
+                    )
+            
+            assert(torch.equal(next_token_logits_cd, next_token_logits) == False)
             
             ## cd_comments: pre-process logits from contrastive inputs
             cd_alpha = model_kwargs.get("cd_alpha") if model_kwargs.get("cd_alpha") is not None else 0.5
@@ -240,11 +256,15 @@ def sample(
                 decoder_hidden_states=decoder_hidden_states,
             )
         else:
-            return SampleDecoderOnlyOutput(
-                sequences=input_ids,
-                scores=scores,
-                attentions=decoder_attentions,
-                hidden_states=decoder_hidden_states,
+            return MyGenerationOutput(
+                    generation=SampleDecoderOnlyOutput(
+                        sequences=input_ids,
+                        scores=scores,
+                        attentions=decoder_attentions,
+                        hidden_states=decoder_hidden_states,
+                    ),
+                    attention_cd=attention_cd
+                    
             )
     else:
         return input_ids

@@ -44,3 +44,12 @@ def add_noise_patch(image_tensor, noise_step, object_1_bb):
     noisy_patch = add_diffusion_noise(object_patch, noise_step)
     image_tensor[:, object_1_bb["y"]:object_1_bb["y"]+object_1_bb["h"], object_1_bb["x"]:object_1_bb["x"]+object_1_bb["w"]] = noisy_patch
     return image_tensor
+
+def denoise_object(image_tensor, object, orig_tensor):
+    image_tensor = image_tensor.clone()
+    
+    object_patch = orig_tensor[:, object["y"]:object["y"]+object["h"], object["x"]:object["x"]+object["w"]].clone()
+    
+    image_tensor[:, object["y"]:object["y"]+object["h"], object["x"]:object["x"]+object["w"]] = object_patch
+    
+    return image_tensor
