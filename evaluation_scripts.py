@@ -288,16 +288,20 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
                 if pred == "yes" and gold == "yes":
                     counts["TP"] += 1
                     counts["TP_" + relation_type] += 1
+                    obj["confusion_type"] = "TP"
                 elif pred == "no" and gold == "no":
                     counts["TN"] += 1
                     counts["TN_" + relation_type] += 1
+                    obj["confusion_type"] = "TN"
                 elif pred == "no" and gold == "yes":
                     counts["FN"] += 1
                     counts["FN_" + relation_type] += 1
+                    obj["confusion_type"] = "FN"
                 elif pred == "yes" and gold == "no":
                     counts["FP"] += 1
                     counts["FP_" + relation_type] += 1
-            
+                    obj["confusion_type"] = "FP"
+
             stats_file.write(json.dumps(obj) + "\n")
         stats_file.close()
 
