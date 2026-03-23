@@ -3,6 +3,7 @@ import math
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch.nn.functional import kl_div
 import transformers
 from transformers.generation.logits_process import LogitsProcessorList
 from transformers.generation.stopping_criteria import (
@@ -117,12 +118,62 @@ def DTC_function():
 
             
             final_layer_idx = len(outputs.hidden_states) - 1
-
-           
-            if dtc_layer_lambda is None:
-                base_layer_idx = final_layer_idx
-            else:
+            
+            if dtc_layer_lambda == "2": #Default option: fixed layer selection (2 layers before final)
                 base_layer_idx = max(0, final_layer_idx - int(dtc_layer_lambda))
+
+            elif dtc_layer_lambda == "cosine":
+                # OPTION 2: Dynamic selection based on cosine similarity of logits (between consecutive layers)
+
+                similarities = []
+                prev_logits = None
+                TRIMMED_LAYERS = 25
+
+                for i, hs in enumerate(outputs.hidden_states[TRIMMED_LAYERS:]):
+                    layer_score = self.lm_head(hs)[:, -1, :].clone()
+                    layer_score = layer_score.float()
+                    sim = F.cosine_similarity(logits, prev_logits, dim=-1)
+                    similarities.append(sim.item())
+                    prev_logits = logits
+                
+                # find least similar (minimum similarity)
+                least_sim_idx = min(range(len(similarities)), key=lambda i: similarities[i])
+                base_layer_idx = max(0, least_sim_idx + TRIMMED_LAYERS)
+
+            elif dtc_layer_lambda == "jsd":
+
+                #OPTION 3: Dynamic selection based on JS divergence of probabilities (between consecutive layers)
+                jsd_scores = []
+                prev_probs = None
+                TRIMMED_LAYERS = 25  # Assuming first TRIMMED_LAYERS' layers are not relevant
+                for i, hs in enumerate(outputs.hidden_states[TRIMMED_LAYERS:]):
+                    layer_score = self.lm_head(hs)[:, -1, :].float()
+                    probs = F.softmax(layer_score, dim=-1)
+                    m = 0.5 * (probs + prev_probs)
+                    jsd = 0.5 * (kl_div(m.log(), probs, reduction='sum') + 
+                                kl_div(m.log(), prev_probs, reduction='sum'))
+                    jsd_scores.append(jsd.item())
+                    prev_probs = probs
+                least_sim_idx = max(range(len(jsd_scores)), key=lambda i: jsd_scores[i])
+                base_layer_idx = max(0, least_sim_idx + TRIMMED_LAYERS )
+        
+                #OPTION 4: Using entropy differences
+            elif dtc_layer_lambda == "entropy":
+                # Look for max entropy change. use the next layer.
+                TRIMMED_LAYERS  = 25
+                entropies = []
+                for i, hs in enumerate(outputs.hidden_states[TRIMMED_LAYERS:]): 
+                    layer_score = self.lm_head(hs)[:, -1, :].clone()
+                    layer_score = layer_score.float()
+                    probs = F.softmax(layer_score, dim=-1)
+                    entropy = -(probs * torch.log(probs + 1e-10)).sum(dim=-1)
+                    entropies.append(entropy.item())
+                entropy_diffs = [entropies[i] - entropies[i-1] for i in range(1, len(entropies))] 
+                sorted_indices = sorted(range(len(entropy_diffs)), key=lambda i: entropy_diffs[i], reverse=True) 
+                base_layer_idx = max(0, sorted_indices[0] + TRIMMED_LAYERS)  
+            else:
+                raise ValueError("Invalid dtc_layer_lambda value")
+            
 
             
             final_logits_step = self.lm_head(outputs.hidden_states[final_layer_idx])[:, -1, :]  # [bsz, vocab]

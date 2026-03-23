@@ -1,6 +1,7 @@
 import torch 
 
 def add_diffusion_noise(image_tensor, noise_step):
+    assert image_tensor.ndim == 3, "Expected image tensor to have shape (C, H, W)"
     num_steps = 1000  # Number of diffusion steps
     # decide beta in each step
     betas = torch.linspace(-6,6,num_steps)

@@ -51,7 +51,7 @@ def get_input_ids(): #TODO Remove?
         qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
 
     conv = conv_templates["vicuna_v1"].copy() #TODO hardcoded conv mode
-    conv.append_message(conv.roles[0], qs + " Please answer this question with one word.")
+    conv.append_message(conv.roles[0], qs )
     conv.append_message(conv.roles[1], None)
     prompt = conv.get_prompt()
 
@@ -429,8 +429,8 @@ def sample(
             assert(torch.equal(next_token_logits_cd, next_token_logits) == False)
             
             ## cd_comments: pre-process logits from contrastive inputs
-            cd_alpha = getattr(self.generation_config, "cd_alpha", 0.5)
-            cd_beta = getattr(self.generation_config, "cd_beta", 0.1)
+            cd_alpha = getattr(self.generation_config, "cd_alpha", 1)
+            cd_beta = getattr(self.generation_config, "cd_beta", 0.2)
             experiment_name = getattr(self.generation_config, "experiment_name", "default_experiment")
             
             # Log token distribution for CD logits (first token generation only)

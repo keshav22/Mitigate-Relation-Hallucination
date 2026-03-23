@@ -147,47 +147,57 @@ def eval_model(args):
         
         
         #GroundingDINO Based CD
-        elif args.cd_mode == "dino_cd" or args.cd_mode == "dino_without_noise_cd":
+        elif args.cd_mode == "dino_cd":
             img_id = line["image_id"]
-            if img_id not in gdino_boxes or len(gdino_boxes[img_id]) == 0:
+            query = line["query_prompt"]
+
+            if img_id not in gdino_boxes or query not in gdino_boxes[img_id]:
                 print(f"No GroundingDINO detections for {img_id}, using full CD fallback")
                 image_tensor_cd = add_diffusion_noise(image_tensor, args.noise_step)
-
             else:
-                detections = gdino_boxes[img_id]
-                if args.noise_target_mode == "single":
+                detections = gdino_boxes[img_id][query]
+                if len(detections) !=0 and args.noise_target_mode == "single":
                     detections = [max(detections, key=lambda d: d["score"])]
-                image_tensor_cd = image_tensor.clone()
+
+                orig_tensor = image_tensor.clone()
+                image_tensor_cd = orig_tensor.clone()
                 model_size = image_tensor.shape[-1]
                 # Store scaled bounding boxes for drawing
                 scaled_bbs = []
+
                 for det in detections:
                     orig_w = det["img_w"]
                     orig_h = det["img_h"]
                     x, y, w, h = det["x"], det["y"], det["w"], det["h"]
+
                     # Padding for square resize
                     x_pad = y_pad = 0
                     if orig_w > orig_h:
                         y_pad = (orig_w - orig_h) / 2
                     else:
                         x_pad = (orig_h - orig_w) / 2
+
                     scale = model_size / max(orig_w, orig_h)
+
                     bb = {
                         "x": int((x + x_pad) * scale),
                         "y": int((y + y_pad) * scale),
                         "w": int(w * scale),
                         "h": int(h * scale),
                     }
+
                     bb["x"] = max(0, min(bb["x"], model_size - 1))
                     bb["y"] = max(0, min(bb["y"], model_size - 1))
                     bb["w"] = max(1, min(bb["w"], model_size))
                     bb["h"] = max(1, min(bb["h"], model_size))
+
                     # Apply noise to this bounding box
                     image_tensor_cd = add_noise_patch(
                         image_tensor_cd,
                         args.noise_step,
                         bb
                     )
+
                     # Store the scaled bounding box for drawing
                     scaled_bbs.append(bb)
                 if line_counter % 100 == 0:
@@ -353,11 +363,12 @@ if __name__ == "__main__":
         gdino_boxes = {}
         for item in gdino_lines:
             image_id = item["image_id"]
+            query = item["org_query_prompt"]
             detections = item.get("detections", [])
-            if not detections:
-                continue
-            gdino_boxes[image_id] = detections
-
+            if image_id not in gdino_boxes:
+                gdino_boxes[image_id] = {}
+        
+            gdino_boxes[image_id][query] = detections
     save_images_dir = Path(PROJECT_HOME) / "runenv" / f"{args.experiment_name}_images"
     save_images_dir.mkdir(parents=True, exist_ok=True)
 
