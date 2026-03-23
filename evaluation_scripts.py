@@ -16,6 +16,7 @@ import json
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 import numpy as np   # <-- added
+import math
 """
 IMPORTANT:
 Assumes JSON files are named with 'yesno' or 'vqa' or 'multichoice' in the filename to identify type.
@@ -493,6 +494,10 @@ def evaluate_auroc(file_path, base_model_file_path):
             ex = json.loads(line)
             ex_base = json.loads(line_base)
 
+            if ex["entropy"] is None or math.isnan(ex["entropy"]):
+                print("!!! Skipping due to missing entropy")
+                continue
+
             if not "is_correct" in ex_base:
                 #not all model responses can be interpreted
                 skipped += 1
@@ -519,7 +524,7 @@ def evaluate_auroc(file_path, base_model_file_path):
     plt.plot([0, 1], [0, 1], linestyle="--")
 
     # ---------- mark threshold on the ROC curve ----------
-    target_threshold = 0.7 #adjust-if-needed
+    target_threshold = 0.9 #adjust-if-needed
 
     # thresholds are in the same order as fpr/tpr; find nearest one
     idx = (np.abs(thresholds - target_threshold)).argmin()
@@ -544,9 +549,10 @@ def evaluate_auroc(file_path, base_model_file_path):
     title = "ROC: detect base-model mistakes using top-k=10 entropy" #adjust-if-needed
     if skipped:
         title += f" ({skipped} not evaluated)"
-    plt.title(title)
+    #plt.title(title)
     plt.legend(loc="lower right")
     plt.grid(True)
+    plt.savefig(os.path.expanduser('~/Desktop/auroc.svg'))
     plt.show()
 
 
@@ -614,8 +620,13 @@ def main():
 if __name__ == "__main__":
     evaluate_auroc(
                     "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/DTC_13B/llava13b_YESNO_DTC_2T_entropy_results.jsonl",
-                    # "/home/nl97naca/results/dtc-topk-10/yesno.jsonl",
-                  
-                    "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_YESNO_results_with_rt_stats.jsonl"
+                    #"/home/nl97naca/results/dtc-topk-10-avg-entropy/mcq_thresh_0_9_stats.jsonl",
+                    #"/home/nl97naca/results/dtc-topk-10-avg-entropy/vqa_thresh_0_9_stats.jsonl",
+
+
+                    base_model_file_path="/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_YESNO_results_with_rt_stats.jsonl"
+                    #base_model_file_path="/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_MultiChoice_with_rt_stats.jsonl"
+                    #base_model_file_path="/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_VQA_Results_with_rt_stats.jsonl"
+                    #^PAY ATTENTION THAT THIS IS SAME QUESTION TYPE
                     )
     #main()
