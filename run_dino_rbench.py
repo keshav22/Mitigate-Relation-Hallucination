@@ -15,12 +15,17 @@ except Exception:
 
 def get_vg_path(image_id: str, vg_root: str):
     image_id = str(image_id).replace(".jpg", "")
-    p1 = os.path.join(vg_root, "VG_100K", f"{image_id}.jpg")
-    p2 = os.path.join(vg_root, "VG_100K_2", f"{image_id}.jpg")
-    if os.path.exists(p1):
-        return p1
-    if os.path.exists(p2):
-        return p2
+#    p1 = os.path.join(vg_root, "VG_100K", f"{image_id}.jpg")
+#    p2 = os.path.join(vg_root, "VG_100K_2", f"{image_id}.jpg")
+#    if os.path.exists(p1):
+#        return p1
+#    if os.path.exists(p2):
+#        return p2
+    p = os.path.join(vg_root, f"{image_id}.jpg")
+    
+    if os.path.exists(p):
+        return p
+
     return None
 
 def clean_prompt(prompt: str) -> str:
@@ -40,7 +45,7 @@ def clean_prompt(prompt: str) -> str:
         prompt
     )
     
-    # MCQ+VQA
+        # MCQ+VQA
     prompt = re.sub(r"^what is the relation with ", "", prompt)
     prompt = re.sub(r"in this photo\?.*", "", prompt)
 
@@ -106,10 +111,10 @@ def run_dino(model, image_path, caption, box_threshold, text_threshold, device, 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--yesno_jsonl", required=True)
+    ap.add_argument("--yesno_jsonl", required=True, default="image-level_filterd.json")
     ap.add_argument("--vg_root", required=True)
-    ap.add_argument("--dino_config", required=True, default="./GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py")
-    ap.add_argument("--dino_weights", required=True, default="./GroundingDINO/weights/groundingdino_swint_ogc.pth")
+    ap.add_argument("--dino_config", required=True)
+    ap.add_argument("--dino_weights", required=True)
 
     ap.add_argument("--box_threshold", type=float, default=0.25)
     ap.add_argument("--text_threshold", type=float, default=0.25)
@@ -135,26 +140,29 @@ def main():
     skipped_no_image = 0
     skipped_duplicates = 0
 
-    with open(args.out_jsonl, "w") as out_fp, open(args.yesno_jsonl, "r") as fp:
-        for line in tqdm(fp, desc="GroundingDINO inference"):
-            if args.max_samples is not None:
-                if processed_unique >= args.max_samples:
-                    break
+    with open(args.out_jsonl, "w") as out_fp:
+        data = json.load(open(args.yesno_jsonl))
 
-            ex = json.loads(line)
-            img_id = str(ex["image_id"]).replace(".jpg", "")
-            q = clean_prompt(ex["query_prompt"])
+        for ex in tqdm(data, desc="GroundingDINO inference"):
 
-            if args.unique_images and img_id in seen_images:
-                skipped_duplicates += 1
-                continue
+#            if args.max_samples is not None:
+#                if processed_unique >= args.max_samples:
+#                    break
+
+#            ex = json.loads(line)
+            img_id = str(ex["image"]).replace(".jpg", "")
+            q = clean_prompt(ex["text"])
+
+#            if args.unique_images and img_id in seen_images:
+#                skipped_duplicates += 1
+#                continue
 
             image_path = get_vg_path(img_id, args.vg_root)
             if image_path is None:
-                skipped_no_image += 1
+#                skipped_no_image += 1
                 # still mark as seen so we don't repeatedly fail on same image_id
-                if args.unique_images:
-                    seen_images.add(img_id)
+#                if args.unique_images:
+#                    seen_images.add(img_id)
                 out_fp.write(json.dumps({
                     "image_id": img_id,
                     "query_prompt": q,
@@ -164,8 +172,8 @@ def main():
                 continue
 
             # mark seen BEFORE running so duplicates later are skipped
-            if args.unique_images:
-                seen_images.add(img_id)
+#            if args.unique_images:
+#                seen_images.add(img_id)
 
             dets, W, H, image_source, boxes, logits, phrases = run_dino(
                 model=model,
@@ -178,9 +186,10 @@ def main():
             )
 
             out_fp.write(json.dumps({
+                "question_id": ex["question_id"],
                 "image_id": img_id,
                 "query_prompt": q,
-                "org_query_prompt": ex["query_prompt"],
+                "org_query_prompt": ex["text"],
                 "img_w": W,
                 "img_h": H,
                 "detections": dets,
