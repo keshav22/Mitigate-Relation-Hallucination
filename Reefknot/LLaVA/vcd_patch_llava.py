@@ -451,8 +451,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "dino_cd", "dino_cd_agla", "dino_cd_extra_obj", "shuffle_cd", "flip_cd","dino_cd", "dino_without_noise_cd"]:
-        raise RuntimeError(f"Invalid cd_mode {args.cd_mode}, should be one of patched_cd, full_cd, no_cd, dino_cd, dino_cd_agla, dino_cd_extra_obj, shuffle_cd, flip_cd, dino_cd, dino_without_noise_cd")
+    if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "dino_cd", "shuffle_cd", "flip_cd"]:
+        raise RuntimeError(f"Invalid cd_mode {args.cd_mode}, should be one of patched_cd, full_cd, no_cd, dino_cd, shuffle_cd, flip_cd")
 
     elif args.cd_mode == "patched_cd":
         if args.bounding_boxes == "" or args.image_qn_obj_map == "":
@@ -461,11 +461,15 @@ if __name__ == "__main__":
             bounding_boxes = json.load(f)
         with open(args.image_qn_obj_map, 'r') as f:
             image_qn_obj_map = json.load(f)
-    elif args.cd_mode == "dino_cd" or args.cd_mode == "dino_cd_agla" or args.cd_mode == "dino_cd_extra_obj":
-        # Load GroundingDINO detections
-        if args.gdino_jsonl is None:
-            raise RuntimeError("Please provide gdino_jsonl for dino_cd mode")
+            
+    elif args.cd_mode == "shuffle_cd":
+        if args.patch_size is None:
+            raise RuntimeError("Please provide patch_size for shuffle_cd mode")
 
+    elif args.cd_mode == "dino_cd":
+        assert args.noise_target_mode in ["single", "multiple"], "noise_target_mode must be provided"
+        assert args.gdino_jsonl is not None, "Please provide gdino_jsonl file with GroundingDINO detections"
+        # Load GroundingDINO detections
         with open(args.gdino_jsonl, "r") as f:
             gdino_lines = [json.loads(l) for l in f]
 
@@ -482,27 +486,7 @@ if __name__ == "__main__":
                 gdino_boxes[image_id] = detections
             else:
                 gdino_boxes[image_id][query] = detections
-        #print("Grounding Dino Mapping: ", gdino_boxes)
 
-    elif args.cd_mode == "shuffle_cd":
-        if args.patch_size is None:
-            raise RuntimeError("Please provide patch_size for shuffle_cd mode")
-
-    elif args.cd_mode == "dino_cd":
-        assert args.noise_target_mode in ["single", "multiple"], "noise_target_mode must be provided"
-        assert args.gdino_jsonl is not None, "Please provide gdino_jsonl file with GroundingDINO detections"
-        # Load GroundingDINO detections
-        with open(args.gdino_jsonl, "r") as f:
-            gdino_lines = [json.loads(l) for l in f]
-        gdino_boxes = {}
-        for item in gdino_lines:
-            image_id = item["image_id"]
-            query = item["org_query_prompt"]
-            detections = item.get("detections", [])
-            if image_id not in gdino_boxes:
-                gdino_boxes[image_id] = {}
-
-            gdino_boxes[image_id][query] = detections
     save_images_dir = Path(PROJECT_HOME) / "runenv" / f"{args.experiment_name}_images"
     save_images_dir.mkdir(parents=True, exist_ok=True)
 
