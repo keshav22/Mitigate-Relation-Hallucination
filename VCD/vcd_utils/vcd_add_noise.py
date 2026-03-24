@@ -25,7 +25,11 @@ def add_diffusion_noise(image_tensor, noise_step):
     image_tensor_cd = q_x(noisy_image,noise_step) 
 
     return image_tensor_cd
-
+    
+def apply_noise_with_mask(image_tensor, noise_step, mask):
+    noisy_tensor = add_diffusion_noise(image_tensor.clone(),noise_step)
+    mask = mask.unsqueeze(0)
+    return image_tensor * (1 - mask) + noisy_tensor * mask
 
 def add_noise_patch(image_tensor, noise_step, object_1_bb):
     image_tensor = image_tensor.clone()

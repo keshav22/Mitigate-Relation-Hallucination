@@ -27,11 +27,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch, denoise_object
-from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling, save_attention_maps
+from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch, apply_noise_with_mask
+from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling
 from attention_visualise_lvlm import AttentionVisualizer
-from PIL import ImageDraw
 from Utils.utils import shuffle_patch_image, get_path, draw_bounding_boxes, tensor_to_img
+from itertools import combinations
 import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -46,6 +46,73 @@ def split_list(lst, n):
 def get_chunk(lst, n, k):
     chunks = split_list(lst, n)
     return chunks[k]
+
+def box_center(bb):
+    """
+    Get centers of the bounding boxes
+    """
+    return (bb["x"] + bb["w"] // 2, bb["y"] + bb["h"] // 2)
+
+def intersection_mask(bb1, bb2, model_size, device):
+    """
+    Returns a binary mask for bbox intersection.
+    """
+    x1 = max(bb1["x"], bb2["x"])
+    y1 = max(bb1["y"], bb2["y"])
+    x2 = min(bb1["x"] + bb1["w"], bb2["x"] + bb2["w"])
+    y2 = min(bb1["y"] + bb1["h"], bb2["y"] + bb2["h"])
+    if x2 <= x1 or y2 <= y1:
+        return None
+    mask = torch.zeros((model_size, model_size), device=device)
+    mask[y1:y2, x1:x2] = 1
+    return mask
+
+def context_ring(bb, expansion=30, model_size=336):
+    """
+    For single object, noise the context instead of noising the object itself.
+    """
+    x1 = max(0, bb["x"] - expansion)
+    y1 = max(0, bb["y"] - expansion)
+    x2 = min(model_size, bb["x"] + bb["w"] + expansion)
+    y2 = min(model_size, bb["y"] + bb["h"] + expansion)
+
+    return {
+        "x": int(x1),
+        "y": int(y1),
+        "w": int(x2 - x1),
+        "h": int(y2 - y1)
+    }
+
+def make_line_mask(model_size, c1, c2, thickness=10, device="cpu"):
+    """
+    Thin line mask between two object centers, for inter-object noising.
+    """
+    mask = torch.zeros((model_size, model_size), device=device)
+    x1, y1 = c1
+    x2, y2 = c2
+    steps = int(max(abs(x2 - x1), abs(y2 - y1))) + 1
+    xs = torch.linspace(x1, x2, steps=steps, device=device).long()
+    ys = torch.linspace(y1, y2, steps=steps, device=device).long()
+    for x, y in zip(xs, ys):
+        x0 = max(0, x - thickness)
+        x1_ = min(model_size, x + thickness + 1)
+        y0 = max(0, y - thickness)
+        y1_ = min(model_size, y + thickness + 1)
+        mask[y0:y1_, x0:x1_] = 1
+    return mask
+
+def object_mask_from_boxes(boxes, model_size, device):
+    '''
+    Apply the mask to the object detected.
+    '''
+    mask = torch.zeros((model_size, model_size), device=device)
+    for bb in boxes:
+        x1 = bb["x"]
+        y1 = bb["y"]
+        x2 = min(model_size, bb["x"] + bb["w"])
+        y2 = min(model_size, bb["y"] + bb["h"])
+        mask[y1:y2, x1:x2] = 1
+    return mask
 
 def eval_model(args):
     # Model
@@ -163,22 +230,64 @@ def eval_model(args):
                     bb["w"] = max(1, min(bb["w"], model_size))
                     bb["h"] = max(1, min(bb["h"], model_size))
 
-                    # Apply noise to this bounding box
-                    image_tensor_cd = add_noise_patch(
-                        image_tensor_cd,
-                        args.noise_step,
-                        bb
-                    )
-
                     # Store the scaled bounding box for drawing
                     scaled_bbs.append(bb)
-                if args.debug_dir:
-                    os.makedirs(args.debug_dir, exist_ok=True)
+
+                if args.noise_areabetween == False:
+                    # Apply noise to each bounding box
+                    for bb in scaled_bbs:
+                        image_tensor_cd = add_noise_patch(
+                            image_tensor_cd,
+                            args.noise_step,
+                            bb
+                        )
+
+                elif args.noise_areabetween == True:
+                    # Mask in-between or overlap for multiple detections
+                    if len(scaled_bbs) >= 2:
+                        device = image_tensor.device
+                        # combined noise mask
+                        relation_mask = torch.zeros((model_size, model_size),device=device)
+
+                        for bb1, bb2 in combinations(scaled_bbs, 2):
+                            inter_mask = intersection_mask(bb1, bb2, model_size, device)
+                            # if overlap exists, noise the overlapping region
+                            if inter_mask is not None:
+                                relation_mask = torch.maximum(relation_mask, inter_mask)
+                            else:
+                                # Otherwise noise between-object region
+                                c1 = box_center(bb1)
+                                c2 = box_center(bb2)
+                                line_mask = make_line_mask(model_size, c1, c2, thickness=10, device=device)
+                                relation_mask = torch.maximum(relation_mask, line_mask)
+                        obj_mask = object_mask_from_boxes(scaled_bbs, model_size, device)
+                        # remove object regions from line masks
+                        relation_mask = relation_mask * (1 - obj_mask) + relation_mask * obj_mask
+                        image_tensor_cd = apply_noise_with_mask(image_tensor_cd, args.noise_step, relation_mask)
+
+                    # Single object detections
+                    else:
+                        device = image_tensor.device
+                        # Get context region of the detected object
+                        ring_bb = context_ring(scaled_bbs[0], expansion=30, model_size=model_size)
+                        ring_mask = torch.zeros((model_size, model_size), device=device)
+                        x1 = ring_bb["x"]
+                        y1 = ring_bb["y"]
+                        x2 = x1 + ring_bb["w"]
+                        y2 = y1 + ring_bb["h"]
+
+                        ring_mask[y1:y2, x1:x2] = 1
+                        # Remove object region and apply noise
+                        obj_mask = object_mask_from_boxes(scaled_bbs, model_size, device)
+                        ring_mask = ring_mask * (1 - obj_mask)
+                        image_tensor_cd = apply_noise_with_mask(image_tensor_cd, args.noise_step, ring_mask)
+
                 if line_counter % 100 == 0:
                     debug_dir = f"/home/mt45dumo/runenv/{args.experiment_name}_images"
                     noisy_img = draw_bounding_boxes(image_tensor_cd, scaled_bbs)
                     if args.debug_dir:
-                        noisy_img.save(f"{debug_dir}/{line_counter}_noise_BB.jpg")
+                        os.makedirs(args.debug_dir, exist_ok=True)
+                        noisy_img.save(f"{args.debug_dir}/{line_counter}_noise_BB.jpg")
                 attn_bbs = scaled_bbs
         #Vanilla VCD
         elif args.cd_mode == "full_cd":
@@ -230,7 +339,6 @@ def eval_model(args):
 
                 max_new_tokens=args.max_new_tokens,
                 use_cache=True,
-                return_dict_in_generate=True,
 
                 output_scores=True,
                 output_attentions=True,
@@ -335,6 +443,7 @@ if __name__ == "__main__":
     parser.add_argument("--image_qn_obj_map", type=str, default="")
     parser.add_argument("--patch_size", type=int, default=None, help="Size of patches to use when using shuffle_cd")
     parser.add_argument("--apply_transforms", action='store_true', help="Apply random transformations to patches when using shuffle_cd", default=False)
+parser.add_argument("--noise_areabetween", action='store_true', help="Whether to noise the area between objects in dino_cd mode", default=False)
 
     args = parser.parse_args()
 
