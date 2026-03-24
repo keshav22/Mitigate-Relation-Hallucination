@@ -35,6 +35,7 @@ import random
 from transformers.trainer_utils import enable_full_determinism
 from transformers import set_seed
 
+debug_dir = f"~/runenv/r_bench_gdino"
 
 def split_list(lst, n):
     """Split a list into n (roughly) equal-sized chunks"""
@@ -194,8 +195,7 @@ def eval_model(args):
 
                 # print("image tensor cd after noise", image_tensor_cd)
                 if idx % 100 == 0:
-                    debug_dir = "~/runenv/r_bench_gdino"
-                    Path(debug_dir).expanduser().mkdir(parents=True, exist_ok=True)
+                    Path(debug_dir).mkdir(parents=True, exist_ok=True)
                     noisy_img = draw_bounding_boxes(image_tensor_cd, scaled_bbs)
                     noisy_img.save(f"{debug_dir}/{idx}_noise_BB.jpg")
 

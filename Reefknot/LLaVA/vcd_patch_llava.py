@@ -243,7 +243,7 @@ def eval_model(args):
                             bb
                         )
 
-                elif args.noise_areabetween == True:
+                else:
                     # Mask in-between or overlap for multiple detections
                     if len(scaled_bbs) >= 2:
                         device = image_tensor.device
@@ -284,7 +284,7 @@ def eval_model(args):
                         image_tensor_cd = apply_noise_with_mask(image_tensor_cd, args.noise_step, ring_mask)
 
                 if line_counter % 100 == 0:
-                    debug_dir = f"/home/mt45dumo/runenv/{args.experiment_name}_images"
+                    debug_dir = f"{PROJECT_HOME}/runenv/{args.experiment_name}_images"
                     noisy_img = draw_bounding_boxes(image_tensor_cd, scaled_bbs)
                     if args.debug_dir:
                         os.makedirs(args.debug_dir, exist_ok=True)
@@ -436,7 +436,7 @@ if __name__ == "__main__":
     parser.add_argument("--experiment_name", type=str, default="default_experiment")
 
     #Experiment specific arguments
-    ##ground truth
+    ##ground truth - These files can be generated from Visual genome Objects.json using : Mitigate-Relation-Hallucination/create_bounding_box_images.py
     parser.add_argument("--bounding_boxes", type=str, help="Ground truth bbox file for objects")
     parser.add_argument("--image_qn_obj_map", type=str, help="Ground truth qn to obj mapping")
     ##dino

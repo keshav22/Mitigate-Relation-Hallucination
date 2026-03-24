@@ -1,3 +1,7 @@
+'''
+Verifying the bounding box coordinates against actual image dimensions
+'''
+
 import json
 import sys,os
 from pathlib import Path
@@ -82,7 +86,7 @@ def sanity_check_bboxes(image_dir, json_file, img_qn_obj_map_file):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Sanity check bounding boxes in images.')
     parser.add_argument('--image_directory', type=str, help='Directory containing images', required=True)
-    parser.add_argument('--json_file', type=str, help='Path to objects.json file', default='/work/scratch/kurse/kurs00097/mt45dumo/Mitigate-Relation-Hallucination/Reefknot/Dataset/objects.json')
+    parser.add_argument('--json_file', type=str, help='Path to objects.json file', default='~/Mitigate-Relation-Hallucination/Reefknot/Dataset/objects.json')
     parser.add_argument('--img_qn_obj_map_file', type=str, help='Path to image question object map file', required=True)
     args = parser.parse_args()
     
