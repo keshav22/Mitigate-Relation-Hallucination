@@ -26,7 +26,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch
-from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling, save_attention_maps
+from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling
 from Utils.utils import shuffle_patch_image, get_path, draw_bounding_boxes, tensor_to_img
 
 PROJECT_HOME = "/home/mt45dumo"
@@ -231,26 +231,6 @@ def eval_model(args):
 
                 output_scores=True,
                 output_attentions=True
-            )
-        
-        #Saving Attention Maps
-        if image_tensor_cd is not None:
-            images_cd = (image_tensor_cd.detach().clone().unsqueeze(0).half().to(model.device) if image_tensor_cd is not None else None)
-            if images_cd.dim() == 4:
-                images_cd = images_cd.squeeze(0)  # (C, H, W)
-            # Convert (C,H,W) -> (H,W,C) and to uint8
-            images_cd_np = images_cd.permute(1, 2, 0).cpu().numpy()
-            images_cd_np = (images_cd_np * 255).clip(0, 255).astype(np.uint8)
-            images_cd_pil = Image.fromarray(images_cd_np)
-            
-            raw_image = tensor_to_img(image_tensor)
-            save_attention_maps(
-                input_ids,
-                tokenizer,
-                raw_image=raw_image, #previously images_cd_pil #[original-vs-noised-attention]: raw_image vs img_cd
-                output_ids=output_ids.sequences,
-                outputs_attentions=output_ids.attentions,
-                prefix=f"/home/mt45dumo/attention_maps_{args.experiment_name}/qn_{line_counter}_" #[original-vs-noised-attention]: path
             )
         
         outputs = tokenizer.batch_decode(
