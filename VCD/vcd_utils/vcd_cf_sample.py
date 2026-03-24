@@ -16,7 +16,7 @@ from transformers.generation.stopping_criteria import (
     StoppingCriteriaList,
     validate_stopping_criteria,
 )
-from transfomers.generation import SampleEncoderDecoderOutput
+from transformers.generation import SampleEncoderDecoderOutput
 
 def sample(
     self,

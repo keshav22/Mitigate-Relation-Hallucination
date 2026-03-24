@@ -543,7 +543,7 @@ if __name__ == "__main__":
     parser.add_argument("--gdino_jsonl", type=str, required=True)
     parser.add_argument("--cd_alpha", type=float, default=1.0)
     parser.add_argument("--cd_beta", type=float, default=0.2)
-
+    parser.add_argument("--quantized", action='store_true', default=False)
     parser.add_argument("--cd_gamma", type=float, default=0.5)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--noise_target_mode", type=str)
