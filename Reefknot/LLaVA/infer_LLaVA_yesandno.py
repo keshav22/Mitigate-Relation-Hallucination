@@ -133,6 +133,17 @@ def eval_model(args):
         image = Image.open(image_path).convert("RGB")
         image_tensor = process_images([image], image_processor, model.config)[0]
 
+        stem = args.question_file.lower()
+        
+        question_type = ""
+        
+        if "vqa" in stem:
+            question_type = "vqa"
+        elif "multichoice" in stem or "mcq":
+            question_type = "mcq"
+        elif "yes" in stem or "no" in stem:
+            question_type = "yn"
+        
         with torch.inference_mode():
             if args.enable_dtc:
                 entropy, layer_score, output_ids = model.generate(
@@ -149,6 +160,7 @@ def eval_model(args):
                     apha=args.apha,
                     threshold=args.threshold,
                     layer_lambda=args.layer_lambda,
+                    question_type=question_type,
                 ) 
                 output_ids = output_ids.sequences
             else:
