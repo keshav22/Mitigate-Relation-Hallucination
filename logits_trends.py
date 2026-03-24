@@ -1,4 +1,21 @@
-#clean up codeand add comments
+'''
+This script loads .pt files containing logits for "yes"/"no" predictions, categorizes them by prediction type (TP/FP) 
+and condition (base/noisy), and creates a histogram plot to visualize the distribution of the top token logits in both paths.
+It also calculates and prints summary statistics for each category.
+
+.pt files should contain the following keys:
+{
+    "pred": Predicted label (e.g., "yes" or "no"),
+    "label": Ground Truth Label (e.g., "yes" or "no")   ,
+    "cd_logits": Final Layer Logits after contrastive decoding,
+    "next_token_logits": Final Layer Logits before contrastive decoding,
+    "next_token_logits_cd": Final Layer Logits using noisy image
+}
+
+Also, the files should match the naming pattern: *_prediction_*.pt, where * can be any string (e.g., "sample1_prediction_42.pt").
+
+
+'''
 
 import torch
 from torch import nn
@@ -130,7 +147,7 @@ def plot_logit_distribution(logits_by_category, save_path='logit_distribution.pn
         'FP_base': 'FP (base)',
         'FP_noisy': 'FP (noisy)',
     }
-    for category in ['FP_base', 'FP_noisy', 'TP_base', 'TP_noisy']:  # Order matters for layering
+    for category in ['FP_base', 'FP_noisy', 'TP_base', 'TP_noisy']:  
         type, path = category.split('_')
         if type in logits_by_category and path in logits_by_category[type] and logits_by_category[type][path]:
             ax.hist(logits_by_category[type][path], bins=bins, 
@@ -162,7 +179,9 @@ def calculate_summary_stats(logits_by_category):
 if __name__ == "__main__":
     torch.manual_seed(42)
     torch.cuda.manual_seed_all(42)
-    folder_path = "/Users/manu/Desktop/Projects/Multimodal AI Lab/Mitigate-Relation-Hallucination/Logits/YESNO_shuffle_notransform_42_rerun"
+    
+    #Directory containing the .pt files
+    folder_path = "~/Multimodal AI Lab/Mitigate-Relation-Hallucination/Logits/YESNO_shuffle_notransform_42_rerun"
 
     # Load and categorize the logits
     logits_by_category = load_and_categorize_logits(folder_path)
