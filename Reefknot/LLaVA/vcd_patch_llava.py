@@ -220,7 +220,6 @@ def eval_model(args):
         
                 max_new_tokens=args.max_new_tokens,
                 use_cache=True,
-                return_dict_in_generate=True,
 
                 output_scores=True
             )
