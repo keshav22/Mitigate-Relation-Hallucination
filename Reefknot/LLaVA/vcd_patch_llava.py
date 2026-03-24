@@ -159,7 +159,8 @@ def eval_model(args):
         image_tensor = process_images([image], image_processor, model.config)[0]  #we only got a single image. and add_noise_patch expects this format.
 
         #Ground Truth Based CD
-        attn_bbs = []if args.cd_mode == "patched_cd":
+        attn_bbs = []
+        if args.cd_mode == "patched_cd":
             img_id = line["image_id"]
             if img_id not in image_qn_obj_map.keys():
                 raise RuntimeError(f"Image ID {img_id} not found in image to object mapping, skipping")
