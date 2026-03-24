@@ -436,15 +436,18 @@ if __name__ == "__main__":
     parser.add_argument("--experiment_name", type=str, default="default_experiment")
 
     #Experiment specific arguments
-    parser.add_argument("--noise_target_mode", type=str, default="single")
-    parser.add_argument("--single_qn_per_bbox", action='store_true', default=False, help="Use an old bbox file that only has single bbox set per image")
+    ##ground truth
+    parser.add_argument("--bounding_boxes", type=str, help="Ground truth bbox file for objects")
+    parser.add_argument("--image_qn_obj_map", type=str, help="Ground truth qn to obj mapping")
+    ##dino
+    parser.add_argument("--gdino_jsonl", type=str, default=None, help="Detected bboxes.")
+    parser.add_argument("--single_qn_per_bbox", action='store_true', default=False, help="Use an old bbox file format that only has single bbox set per image")
     parser.add_argument("--debug_dir", type=str)
-    parser.add_argument("--gdino_jsonl", type=str, default=None)
-    parser.add_argument("--bounding_boxes", type=str, default="")
-    parser.add_argument("--image_qn_obj_map", type=str, default="")
+    parser.add_argument("--noise_target_mode", type=str, default="single", help="For dino_cd only.")
+    parser.add_argument("--noise_areabetween", action='store_true', help="Whether to noise the area between objects in dino_cd mode", default=False)
+    ##shuffle_cd
     parser.add_argument("--patch_size", type=int, default=None, help="Size of patches to use when using shuffle_cd")
     parser.add_argument("--apply_transforms", action='store_true', help="Apply random transformations to patches when using shuffle_cd", default=False)
-    parser.add_argument("--noise_areabetween", action='store_true', help="Whether to noise the area between objects in dino_cd mode", default=False)
 
     args = parser.parse_args()
 
