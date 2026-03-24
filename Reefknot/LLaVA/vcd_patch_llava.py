@@ -443,7 +443,7 @@ if __name__ == "__main__":
     parser.add_argument("--image_qn_obj_map", type=str, default="")
     parser.add_argument("--patch_size", type=int, default=None, help="Size of patches to use when using shuffle_cd")
     parser.add_argument("--apply_transforms", action='store_true', help="Apply random transformations to patches when using shuffle_cd", default=False)
-parser.add_argument("--noise_areabetween", action='store_true', help="Whether to noise the area between objects in dino_cd mode", default=False)
+    parser.add_argument("--noise_areabetween", action='store_true', help="Whether to noise the area between objects in dino_cd mode", default=False)
 
     args = parser.parse_args()
 
