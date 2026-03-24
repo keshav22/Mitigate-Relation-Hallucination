@@ -26,7 +26,7 @@ def sanity_check_bboxes(image_dir, json_file, img_qn_obj_map_file):
         json_file: Path to objects.json file
         img_qn_obj_map_file: Path to image question object map file
     """
-    with open(json_file, 'r') as f:
+    with open(Path(json_file).expanduser(), 'r') as f:
         data = json.load(f)
     image_dir = Path(image_dir)
     imageid_qnobj_map = {}
