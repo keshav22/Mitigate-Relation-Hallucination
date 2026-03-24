@@ -1,0 +1,110 @@
+{
+  "files": [
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Experiment_Results/Dino/Highliting_objects_LLaVA_13B/LLaVa_13_mcq_dino_highlight_obj.jsonl",
+      "title": "LLaVa_13_mcq_dino_highlight_obj",
+      "summary": {
+        "total_lines": 6950,
+        "evaluated_lines": 6948,
+        "accuracy_over_all_lines": 0.6126618705035971,
+        "accuracy_over_evaluated_lines": 0.6128382268278642,
+        "hallucination_rate_over_all_lines": 0.3873381294964029,
+        "hallucination_rate_over_evaluated_lines": 0.38716177317213585,
+        "macro_precision": 0.6927724014997525,
+        "macro_recall": 0.6095639113645579,
+        "macro_f1": 0.6022421016717174,
+        "per_class_mcq": {
+          "a": {
+            "precision": 0.7042944785276074,
+            "recall": 0.661671469740634,
+            "f1": 0.6823179791976226
+          },
+          "b": {
+            "precision": 0.8758526603001364,
+            "recall": 0.383054892601432,
+            "f1": 0.5330012453300125
+          },
+          "c": {
+            "precision": 0.7095363079615048,
+            "recall": 0.4605337876206701,
+            "f1": 0.5585399449035813
+          },
+          "d": {
+            "precision": 0.48140615920976176,
+            "recall": 0.9329954954954955,
+            "f1": 0.6351092372556535
+          }
+        },
+        "accuracy_by_type": {
+          "cognitive": 0.7067528136723635,
+          "perception": 0.40325581395348836,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.29324718632763647,
+          "perception": 0.5967441860465117,
+          "unknown": null
+        },
+        "parse_errors_label": 0,
+        "parse_errors_response": 2,
+        "ambiguous_responses": [
+          "In the photo, there",
+          "There is no relation between"
+        ]
+      }
+    },
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Experiment_Results/Dino/Highliting_objects_LLaVA_13B/LLaVa_13_vqa_dino_highlight_obj.jsonl",
+      "title": "LLaVa_13_vqa_dino_highlight_obj",
+      "summary": {
+        "hallucination_rate_over_all": 0.524435318275154,
+        "hallucination_rate_perception": 0.4981395348837209,
+        "hallucination_rate_cognitive": 0.5452205882352941
+      },
+      "counts": {
+        "perception": 2150,
+        "equivalent": 2316,
+        "perception_equivalent": 1079,
+        "different": 2554,
+        "perception_different": 1071,
+        "cognitive": 2720,
+        "cognitive_equivalent": 1237,
+        "cognitive_different": 1483
+      }
+    },
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Experiment_Results/Dino/Highliting_objects_LLaVA_13B/LLaVa_13_yesno_dino_highlight_obj.jsonl",
+      "title": "LLaVa_13_yesno_dino_highlight_obj",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9740,
+        "precision": 0.5928601784955376,
+        "recall": 0.8593429158110883,
+        "f1": 0.701651437672898,
+        "correct": 6181,
+        "incorrect": 3559,
+        "pred_missing_or_ambiguous_total": 0,
+        "pred_missing_or_ambiguous_label_yes": 0,
+        "pred_missing_or_ambiguous_label_no": 0,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6345995893223819,
+        "accuracy_over_all_lines": 0.6345995893223819,
+        "accuracy_by_type": {
+          "cognitive": 0.6645220588235294,
+          "perception": 0.5967441860465116,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.33547794117647056,
+          "perception": 0.4032558139534884,
+          "unknown": null
+        },
+        "hallucination_rate_over_evaluated": 0.3654004106776181,
+        "hallucination_rate_over_all_lines": 0.3654004106776181,
+        "ambiguous_gold_examples": [],
+        "ambiguous_pred_examples": []
+      }
+    }
+  ]
+}

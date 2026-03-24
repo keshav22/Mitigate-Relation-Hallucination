@@ -1,0 +1,154 @@
+{
+  "file": "qwenvl_dino500_mcq_multiple_noise.jsonl",
+  "title": "qwenvl_dino500_mcq_multiple_noise",
+  "summary": {
+    "total_lines": 6950,
+    "evaluated_lines": 6907,
+    "accuracy_over_all_lines": 0.6572661870503597,
+    "accuracy_over_evaluated_lines": 0.6613580425655132,
+    "hallucination_rate_over_all_lines": 0.34273381294964034,
+    "hallucination_rate_over_evaluated_lines": 0.3386419574344868,
+    "macro_precision": 0.7104753620136322,
+    "macro_recall": 0.65910318500337,
+    "macro_f1": 0.6591784762584846,
+    "per_class_mcq": {
+      "a": {
+        "precision": 0.6027462121212122,
+        "recall": 0.738827626233314,
+        "f1": 0.6638852672750978
+      },
+      "b": {
+        "precision": 0.8602261048304214,
+        "recall": 0.5063520871143375,
+        "f1": 0.6374714394516375
+      },
+      "c": {
+        "precision": 0.8150912106135987,
+        "recall": 0.5588402501421262,
+        "f1": 0.6630691399662733
+      },
+      "d": {
+        "precision": 0.5638379204892966,
+        "recall": 0.832392776523702,
+        "f1": 0.6722880583409299
+      }
+    },
+    "accuracy_by_type": {
+      "cognitive": 0.7692792603488128,
+      "perception": 0.42225325884543763,
+      "unknown": null
+    },
+    "hallucination_rate_by_type": {
+      "cognitive": 0.23072073965118722,
+      "perception": 0.5777467411545624,
+      "unknown": null
+    },
+    "parse_errors_label": 0,
+    "parse_errors_response": 43,
+    "ambiguous_responses": [
+      "anchoring",
+      "approaching",
+      "attaching",
+      "blowing",
+      "casting",
+      "containing",
+      "displaying",
+      "drinking",
+      "enjoying",
+      "following",
+      "forming",
+      "hitting",
+      "holding",
+      "hugging",
+      "laying",
+      "lining",
+      "looking",
+      "raising",
+      "reading",
+      "riding",
+      "rowing",
+      "securing",
+      "separating",
+      "showing",
+      "sniffing",
+      "steering",
+      "striking",
+      "supporting",
+      "waiting",
+      "walking"
+    ]
+  }
+}
+{
+  "file": "qwenvl_dino500_mcq_single_noise.jsonl",
+  "title": "qwenvl_dino500_mcq_single_noise",
+  "summary": {
+    "total_lines": 6950,
+    "evaluated_lines": 6915,
+    "accuracy_over_all_lines": 0.6607194244604316,
+    "accuracy_over_evaluated_lines": 0.664063629790311,
+    "hallucination_rate_over_all_lines": 0.33928057553956836,
+    "hallucination_rate_over_evaluated_lines": 0.33593637020968903,
+    "macro_precision": 0.7134548327889196,
+    "macro_recall": 0.6617470959308187,
+    "macro_f1": 0.6617599588707825,
+    "per_class_mcq": {
+      "a": {
+        "precision": 0.6031969910672308,
+        "recall": 0.7424768518518519,
+        "f1": 0.6656290531776913
+      },
+      "b": {
+        "precision": 0.8668730650154799,
+        "recall": 0.5081669691470054,
+        "f1": 0.6407322654462242
+      },
+      "c": {
+        "precision": 0.815550041356493,
+        "recall": 0.5599091425326519,
+        "f1": 0.6639730639730639
+      },
+      "d": {
+        "precision": 0.5681992337164751,
+        "recall": 0.8364354201917654,
+        "f1": 0.676705452886151
+      }
+    },
+    "accuracy_by_type": {
+      "cognitive": 0.7704574066302979,
+      "perception": 0.42810609585853887,
+      "unknown": null
+    },
+    "hallucination_rate_by_type": {
+      "cognitive": 0.22954259336970206,
+      "perception": 0.5718939041414611,
+      "unknown": null
+    },
+    "parse_errors_label": 0,
+    "parse_errors_response": 35,
+    "ambiguous_responses": [
+      "approaching",
+      "blowing",
+      "casting",
+      "containing",
+      "displaying",
+      "drinking",
+      "enjoying",
+      "hitting",
+      "holding",
+      "hugging",
+      "lining",
+      "looking",
+      "reading",
+      "riding",
+      "rowing",
+      "securing",
+      "separating",
+      "showing",
+      "sniffing",
+      "steering",
+      "striking",
+      "waiting"
+    ]
+  }
+}

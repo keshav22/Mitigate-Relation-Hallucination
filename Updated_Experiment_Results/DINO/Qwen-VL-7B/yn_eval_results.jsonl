@@ -1,0 +1,84 @@
+{
+  "file": "qwenvl_dino500_yesno_multiple_noise.jsonl",
+  "summary": {
+    "total_lines": 9740,
+    "evaluated_pairs": 9732,
+    "precision": 0.53168854685378,
+    "recall": 0.9654747225647349,
+    "f1": 0.6857393081302,
+    "correct": 5426,
+    "incorrect": 4306,
+    "pred_missing_or_ambiguous_total": 8,
+    "pred_missing_or_ambiguous_label_yes": 4,
+    "pred_missing_or_ambiguous_label_no": 4,
+    "gold_missing_or_ambiguous": 0,
+    "parse_error": 0,
+    "accuracy_over_evaluated": 0.5575421290587752,
+    "accuracy_over_all_lines": 0.5570841889117043,
+    "accuracy_by_type": {
+      "cognitive": 0.5609711237814972,
+      "perception": 0.5532013969732247,
+      "unknown": null
+    },
+    "hallucination_rate_by_type": {
+      "cognitive": 0.43902887621850284,
+      "perception": 0.4467986030267753,
+      "unknown": null
+    },
+    "hallucination_rate_over_evaluated": 0.4424578709412248,
+    "hallucination_rate_over_all_lines": 0.4429158110882957,
+    "ambiguous_gold_examples": [],
+    "ambiguous_pred_examples": [
+      "The luggage",
+      "The man",
+      "The pizza",
+      "The shelf",
+      "The sign",
+      "The skateboard",
+      "The street",
+      "The topping"
+    ]
+  }
+}
+{
+    "file": "qwenvl_dino500_yesno_single_noise.jsonl",
+    "summary": {
+      "total_lines": 9740,
+      "evaluated_pairs": 9732,
+      "precision": 0.5312535322708263,
+      "recall": 0.9658857377722976,
+      "f1": 0.6854809305039014,
+      "correct": 5419,
+      "incorrect": 4313,
+      "pred_missing_or_ambiguous_total": 8,
+      "pred_missing_or_ambiguous_label_yes": 4,
+      "pred_missing_or_ambiguous_label_no": 4,
+      "gold_missing_or_ambiguous": 0,
+      "parse_error": 0,
+      "accuracy_over_evaluated": 0.5568228524455405,
+      "accuracy_over_all_lines": 0.5563655030800821,
+      "accuracy_by_type": {
+        "cognitive": 0.5602354239470296,
+        "perception": 0.5525029103608847,
+        "unknown": null
+      },
+      "hallucination_rate_by_type": {
+        "cognitive": 0.43976457605297037,
+        "perception": 0.4474970896391153,
+        "unknown": null
+      },
+      "hallucination_rate_over_evaluated": 0.44317714755445947,
+      "hallucination_rate_over_all_lines": 0.44363449691991785,
+      "ambiguous_gold_examples": [],
+      "ambiguous_pred_examples": [
+        "The luggage",
+        "The man",
+        "The pizza",
+        "The shelf",
+        "The sign",
+        "The skateboard",
+        "The street",
+        "The topping"
+      ]
+    }
+  }

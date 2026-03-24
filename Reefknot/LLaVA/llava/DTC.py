@@ -22,7 +22,7 @@ from llava.model.language_model import llava_llama
 
 def _stash_dtc_to_config(self, kwargs: dict):
 
-    for k in ("apha", "threshold", "layer_lambda"):
+    for k in ("apha", "threshold", "layer_lambda", "question_type", "top_p"):
         if k in kwargs:
             setattr(self.generation_config, f"dtc_{k}", kwargs.pop(k))
 
@@ -36,7 +36,6 @@ def DTC_function():
         return _orig_generate(self, *args, **kwargs)
 
     llava_llama.LlavaLlamaForCausalLM.generate = _generate_patch
-
     
     def greedy_search_redefine(
         self,
@@ -52,13 +51,14 @@ def DTC_function():
         return_dict_in_generate: bool = None,
         synced_gpus: bool = False,
         streamer=None,
-        **model_kwargs,  
+        **model_kwargs,
     ):
         
         apha = getattr(self.generation_config, "dtc_apha", None)            
         threshold = getattr(self.generation_config, "dtc_threshold", None)
         dtc_layer_lambda = getattr(self.generation_config, "dtc_layer_lambda", None)
-
+        dtc_question_type = getattr(self.generation_config, "dtc_question_type", None)
+        dtc_top_p = getattr(self.generation_config, "dtc_top_p", None)
         
         logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
         stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
@@ -178,23 +178,56 @@ def DTC_function():
             
             final_logits_step = self.lm_head(outputs.hidden_states[final_layer_idx])[:, -1, :]  # [bsz, vocab]
             base_logits_step = self.lm_head(outputs.hidden_states[base_layer_idx])[:, -1, :]    # [bsz, vocab]
-
-            
             softmax_final = F.softmax(final_logits_step.float(), dim=-1)
-           
-            yes_prob = softmax_final.flatten()[3869].item()
-            no_prob = softmax_final.flatten()[1939].item()
-
-            if threshold is not None and yes_prob > 0.0 and no_prob > 0.0:
-                yes_no_entropy = -(yes_prob * math.log2(yes_prob) + no_prob * math.log2(no_prob))
-            else:
-                yes_no_entropy = 0.0
-
             
-            use_dtc = (threshold is not None) and (apha is not None) and (yes_no_entropy >= float(threshold))
+            entropy = 0.0
+            
+            if dtc_question_type == "vqa" or dtc_question_type == "mcq":
+                sorted_softmax, _ = torch.sort(softmax_final, descending=True)
+                
+                local_shannon_entropy = 0.0
+                sum_prop = 0.0
+                
+                cnt = 0
+                
+                pro_values = []
+                
+                for i, value in enumerate(sorted_softmax.flatten()):
+                    sum_prop += value.item()
+                    
+                    pro_values.append(value.item())
+                    
+                    cnt += 1
+                    
+                    if sum_prop >= dtc_top_p:
+                        break
+                
+                arr = np.array(pro_values)
+                
+                if len(arr) > 1:
+                    hmax = math.log2(len(arr))
+                else:
+                    hmax = 1
+                
+                arr = arr / np.sum(arr)
+                
+                for item in arr:
+                    local_shannon_entropy += item * math.log2(item)
+                
+                entropy = -(local_shannon_entropy / hmax)
+            else:
+                yes_prob = softmax_final.flatten()[3869].item()
+                no_prob = softmax_final.flatten()[1939].item()
+
+                if threshold is not None and yes_prob > 0.0 and no_prob > 0.0:
+                    yes_prob = yes_prob / (yes_prob + no_prob)
+                    no_prob = no_prob / (yes_prob + no_prob)
+                    entropy = -(yes_prob * math.log2(yes_prob) + no_prob * math.log2(no_prob))
+                else:
+                    entropy = 0.0
+            use_dtc = (threshold is not None) and (apha is not None) and (entropy >= float(threshold))
             if use_dtc:
                 relative_top = 0.1
-
 
                 final_logits_norm = final_logits_step.float().log_softmax(dim=-1)  # [bsz, vocab]
                 base_logits_norm = base_logits_step.float().log_softmax(dim=-1)    # [bsz, vocab]

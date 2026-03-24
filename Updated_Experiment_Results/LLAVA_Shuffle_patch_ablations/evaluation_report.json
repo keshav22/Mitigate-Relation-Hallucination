@@ -1,0 +1,242 @@
+{
+  "files": [
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/LLAVA_Shuffle_patch_ablations/YESNO_shuffle_notransform_112.jsonl",
+      "title": "YESNO_shuffle_notransform_112",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9740,
+        "precision": 0.5920775389801939,
+        "recall": 0.8655030800821355,
+        "f1": 0.7031445491700725,
+        "correct": 6181,
+        "incorrect": 3559,
+        "pred_missing_or_ambiguous_total": 0,
+        "pred_missing_or_ambiguous_label_yes": 0,
+        "pred_missing_or_ambiguous_label_no": 0,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6345995893223819,
+        "accuracy_over_all_lines": 0.6345995893223819,
+        "accuracy_by_type": {
+          "cognitive": 0.6645220588235294,
+          "perception": 0.5967441860465116,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.33547794117647056,
+          "perception": 0.4032558139534884,
+          "unknown": null
+        },
+        "hallucination_rate_over_evaluated": 0.3654004106776181,
+        "hallucination_rate_over_all_lines": 0.3654004106776181,
+        "ambiguous_gold_examples": [],
+        "ambiguous_pred_examples": []
+      }
+    },
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/LLAVA_Shuffle_patch_ablations/YESNO_shuffle_notransform_28.jsonl",
+      "title": "YESNO_shuffle_notransform_28",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9740,
+        "precision": 0.5891526359370687,
+        "recall": 0.8765913757700206,
+        "f1": 0.7046880158468141,
+        "correct": 6162,
+        "incorrect": 3578,
+        "pred_missing_or_ambiguous_total": 0,
+        "pred_missing_or_ambiguous_label_yes": 0,
+        "pred_missing_or_ambiguous_label_no": 0,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6326488706365503,
+        "accuracy_over_all_lines": 0.6326488706365503,
+        "accuracy_by_type": {
+          "cognitive": 0.6606617647058823,
+          "perception": 0.5972093023255814,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.33933823529411766,
+          "perception": 0.40279069767441855,
+          "unknown": null
+        },
+        "hallucination_rate_over_evaluated": 0.3673511293634497,
+        "hallucination_rate_over_all_lines": 0.3673511293634497,
+        "ambiguous_gold_examples": [],
+        "ambiguous_pred_examples": []
+      }
+    },
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/LLAVA_Shuffle_patch_ablations/YESNO_shuffle_notransform_42.jsonl",
+      "title": "YESNO_shuffle_notransform_42",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9740,
+        "precision": 0.5919388464211258,
+        "recall": 0.8745379876796715,
+        "f1": 0.7060091172813925,
+        "correct": 6193,
+        "incorrect": 3547,
+        "pred_missing_or_ambiguous_total": 0,
+        "pred_missing_or_ambiguous_label_yes": 0,
+        "pred_missing_or_ambiguous_label_no": 0,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6358316221765914,
+        "accuracy_over_all_lines": 0.6358316221765914,
+        "accuracy_by_type": {
+          "cognitive": 0.663235294117647,
+          "perception": 0.6011627906976744,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.33676470588235297,
+          "perception": 0.3988372093023256,
+          "unknown": null
+        },
+        "hallucination_rate_over_evaluated": 0.3641683778234086,
+        "hallucination_rate_over_all_lines": 0.3641683778234086,
+        "ambiguous_gold_examples": [],
+        "ambiguous_pred_examples": []
+      }
+    },
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/LLAVA_Shuffle_patch_ablations/YESNO_shuffle_notransform_56.jsonl",
+      "title": "YESNO_shuffle_notransform_56",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9740,
+        "precision": 0.5924734191382205,
+        "recall": 0.8696098562628337,
+        "f1": 0.7047761690797137,
+        "correct": 6192,
+        "incorrect": 3548,
+        "pred_missing_or_ambiguous_total": 0,
+        "pred_missing_or_ambiguous_label_yes": 0,
+        "pred_missing_or_ambiguous_label_no": 0,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.635728952772074,
+        "accuracy_over_all_lines": 0.635728952772074,
+        "accuracy_by_type": {
+          "cognitive": 0.6654411764705882,
+          "perception": 0.598139534883721,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.3345588235294118,
+          "perception": 0.40186046511627904,
+          "unknown": null
+        },
+        "hallucination_rate_over_evaluated": 0.364271047227926,
+        "hallucination_rate_over_all_lines": 0.364271047227926,
+        "ambiguous_gold_examples": [],
+        "ambiguous_pred_examples": []
+      }
+    },
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/LLAVA_Shuffle_patch_ablations/YESNO_shuffle_notransform_84.jsonl",
+      "title": "YESNO_shuffle_notransform_84",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9740,
+        "precision": 0.5921645997745209,
+        "recall": 0.8628336755646817,
+        "f1": 0.7023232492060839,
+        "correct": 6178,
+        "incorrect": 3562,
+        "pred_missing_or_ambiguous_total": 0,
+        "pred_missing_or_ambiguous_label_yes": 0,
+        "pred_missing_or_ambiguous_label_no": 0,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6342915811088295,
+        "accuracy_over_all_lines": 0.6342915811088295,
+        "accuracy_by_type": {
+          "cognitive": 0.6597426470588236,
+          "perception": 0.6020930232558139,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.3402573529411764,
+          "perception": 0.39790697674418607,
+          "unknown": null
+        },
+        "hallucination_rate_over_evaluated": 0.36570841889117045,
+        "hallucination_rate_over_all_lines": 0.36570841889117045,
+        "ambiguous_gold_examples": [],
+        "ambiguous_pred_examples": []
+      }
+    },
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/LLAVA_Shuffle_patch_ablations/YESNO_shuffle_transform_56.jsonl",
+      "title": "YESNO_shuffle_transform_56",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9740,
+        "precision": 0.5895087427144047,
+        "recall": 0.8722792607802875,
+        "f1": 0.7035442199403776,
+        "correct": 6160,
+        "incorrect": 3580,
+        "pred_missing_or_ambiguous_total": 0,
+        "pred_missing_or_ambiguous_label_yes": 0,
+        "pred_missing_or_ambiguous_label_no": 0,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6324435318275154,
+        "accuracy_over_all_lines": 0.6324435318275154,
+        "accuracy_by_type": {
+          "cognitive": 0.6606617647058823,
+          "perception": 0.5967441860465116,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.33933823529411766,
+          "perception": 0.4032558139534884,
+          "unknown": null
+        },
+        "hallucination_rate_over_evaluated": 0.36755646817248455,
+        "hallucination_rate_over_all_lines": 0.36755646817248455,
+        "ambiguous_gold_examples": [],
+        "ambiguous_pred_examples": []
+      }
+    },
+    {
+      "file": "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/LLAVA_Shuffle_patch_ablations/YESNO_shuffle_withtransform_84.jsonl",
+      "title": "YESNO_shuffle_withtransform_84",
+      "summary": {
+        "total_lines": 9740,
+        "evaluated_pairs": 9740,
+        "precision": 0.5894898243657652,
+        "recall": 0.8683778234086242,
+        "f1": 0.7022583859182996,
+        "correct": 6154,
+        "incorrect": 3586,
+        "pred_missing_or_ambiguous_total": 0,
+        "pred_missing_or_ambiguous_label_yes": 0,
+        "pred_missing_or_ambiguous_label_no": 0,
+        "gold_missing_or_ambiguous": 0,
+        "parse_error": 0,
+        "accuracy_over_evaluated": 0.6318275154004107,
+        "accuracy_over_all_lines": 0.6318275154004107,
+        "accuracy_by_type": {
+          "cognitive": 0.6591911764705882,
+          "perception": 0.5972093023255814,
+          "unknown": null
+        },
+        "hallucination_rate_by_type": {
+          "cognitive": 0.3408088235294118,
+          "perception": 0.40279069767441855,
+          "unknown": null
+        },
+        "hallucination_rate_over_evaluated": 0.3681724845995893,
+        "hallucination_rate_over_all_lines": 0.3681724845995893,
+        "ambiguous_gold_examples": [],
+        "ambiguous_pred_examples": []
+      }
+    }
+  ]
+}
