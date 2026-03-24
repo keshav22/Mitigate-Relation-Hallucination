@@ -597,14 +597,14 @@ def main():
 
 if __name__ == "__main__":
     # evaluate_auroc(
-                    "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/DTC_13B/llava13b_YESNO_DTC_2T_entropy_results.jsonl",
-                    #"/home/nl97naca/results/dtc-topk-10-avg-entropy/mcq_thresh_0_9_stats.jsonl",
-                    #"/home/nl97naca/results/dtc-topk-10-avg-entropy/vqa_thresh_0_9_stats.jsonl",
+    #                 "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/DTC_13B/llava13b_YESNO_DTC_2T_entropy_results.jsonl",
+    #                 #"/home/nl97naca/results/dtc-topk-10-avg-entropy/mcq_thresh_0_9_stats.jsonl",
+    #                 #"/home/nl97naca/results/dtc-topk-10-avg-entropy/vqa_thresh_0_9_stats.jsonl",
 
 
-                    base_model_file_path="/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_YESNO_results_with_rt_stats.jsonl"
-                    #base_model_file_path="/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_MultiChoice_with_rt_stats.jsonl"
-                    #base_model_file_path="/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_VQA_Results_with_rt_stats.jsonl"
-                    #^PAY ATTENTION THAT THIS IS SAME QUESTION TYPE
-                    # )
+    #                 base_model_file_path="/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_YESNO_results_with_rt_stats.jsonl"
+    #                 #base_model_file_path="/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_MultiChoice_with_rt_stats.jsonl"
+    #                 #base_model_file_path="/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_VQA_Results_with_rt_stats.jsonl"
+    #                 #^PAY ATTENTION THAT THIS IS SAME QUESTION TYPE
+    #                 )
     main()
