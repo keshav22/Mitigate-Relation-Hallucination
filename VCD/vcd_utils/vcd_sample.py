@@ -229,7 +229,7 @@ def sample(
     first_token_generated = False  # Track if we've generated the first token
     do_for_first_token_only = False
 
-    output_folder = "/home/mt45dumo/runenv/logits" #model_kwargs.get("token_logits_output_folder", None)  # Optional output folder path
+    output_folder = Path("~/runenv/logits").expanduser() #model_kwargs.get("token_logits_output_folder", None)  # Optional output folder path
 
     global line_counter
     line_counter += 1

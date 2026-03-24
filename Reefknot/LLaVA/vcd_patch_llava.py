@@ -36,7 +36,7 @@ import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-PROJECT_HOME = "/home/nl97naca"
+PROJECT_HOME = Path("~/").expanduser()
 
 def split_list(lst, n):
     """Split a list into n (roughly) equal-sized chunks"""
