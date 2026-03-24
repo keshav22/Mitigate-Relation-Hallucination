@@ -1,3 +1,8 @@
+"""
+This file prints top-k of next_token_distributions.
+analysis_mode "layer_scores" processes output from https://github.com/keshav22/Mitigate-Relation-Hallucination/blob/53793179e5aa8c97d1cae8565416e875eb532451/Reefknot/LLaVA/infer_LLaVA_yesandno.py#L180-L181 in a logit lens format, similar to Figure 8 (b) from Reefknot paper
+analysis_mode "vcd_tokens" https://github.com/keshav22/Mitigate-Relation-Hallucination/blob/8830abe911b410a8b5963665efd795de36820d53/VCD/vcd_utils/vcd_sample.py#L116
+"""
 #%%
 import torch
 from pathlib import Path
@@ -16,7 +21,6 @@ if analysis_mode == "vcd_tokens":
     
     if not Path(token_logits_output_file).exists():
         print(f"Error: Output file {token_logits_output_file} not found.")
-        print("Make sure to pass 'token_logits_output_file' in model_kwargs when calling generate().")
     else:
         # Load the saved probability distribution tensor
         probs = torch.load(token_logits_output_file, map_location=torch.device("cpu"), weights_only=True)
