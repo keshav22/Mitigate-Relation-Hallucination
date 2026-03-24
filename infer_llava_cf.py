@@ -549,7 +549,6 @@ if __name__ == "__main__":
     parser.add_argument("--noise_target_mode", type=str)
     parser.add_argument("--debug_dir", type=str)
     parser.add_argument("--max_samples", type=int, required=False)
-    parser.add_argument("--rltn_jsonl", type=str, required=True)
     args = parser.parse_args()
 
     if args.cd_mode not in ["patched_cd", "full_cd", "no_cd", "dino_cd"]:
@@ -582,12 +581,9 @@ if __name__ == "__main__":
 
     global perception_relation
     global cognitive_relation
-    
-    with open(args.rltn_jsonl, "r") as f:
-      data = json.load(f)
         
-    perception_relation = data["perception_relation"]
-    cognitive_relation = data["cognitive_relation"]
+    perception_relation = PERCEPTION_OPTIONS
+    cognitive_relation = COGNITIVE_OPTIONS
     
     global PROTECTED_SUFFIXES
     
