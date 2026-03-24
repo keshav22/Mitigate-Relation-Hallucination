@@ -22,10 +22,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     objs = load_objects_json(args.input)
-    parsed_objects = { obj['image_id']: obj for obj in objs }
+    parsed_objects = { obj['image_id']: {} for obj in objs }
     final_parsed = {}
     for image in objs:
-        parsed_objects[image['image_id']] = {}
         for obj in image['objects']:
             if 'names' in obj and len(obj['names']) > 0 and type(obj['names']) == list:
                     for name in obj['names']:

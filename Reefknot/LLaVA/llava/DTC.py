@@ -28,7 +28,7 @@ def _stash_dtc_to_config(self, kwargs: dict):
 
 
 def DTC_function():
-   
+
     _orig_generate = llava_llama.LlavaLlamaForCausalLM.generate
 
     def _generate_patch(self, *args, **kwargs):
@@ -36,7 +36,7 @@ def DTC_function():
         return _orig_generate(self, *args, **kwargs)
 
     llava_llama.LlavaLlamaForCausalLM.generate = _generate_patch
-    
+
     def greedy_search_redefine(
         self,
         input_ids: torch.LongTensor,
@@ -53,13 +53,13 @@ def DTC_function():
         streamer=None,
         **model_kwargs,
     ):
-        
-        apha = getattr(self.generation_config, "dtc_apha", None)            
+
+        apha = getattr(self.generation_config, "dtc_apha", None)
         threshold = getattr(self.generation_config, "dtc_threshold", None)
         dtc_layer_lambda = getattr(self.generation_config, "dtc_layer_lambda", None)
         dtc_question_type = getattr(self.generation_config, "dtc_question_type", None)
         dtc_top_p = getattr(self.generation_config, "dtc_top_p", None)
-        
+
         logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
         stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
         if max_length is not None:
@@ -78,11 +78,11 @@ def DTC_function():
         output_attentions = (
             output_attentions if output_attentions is not None else self.generation_config.output_attentions
         )
-        
+
         output_hidden_states = True
         return_dict_in_generate = True
 
-       
+
         scores = () if (return_dict_in_generate and output_scores) else None
         decoder_attentions = () if (return_dict_in_generate and output_attentions) else None
         cross_attentions = () if (return_dict_in_generate and output_attentions) else None
@@ -92,21 +92,24 @@ def DTC_function():
             encoder_attentions = model_kwargs["encoder_outputs"].get("attentions") if output_attentions else None
             encoder_hidden_states = model_kwargs["encoder_outputs"].get("hidden_states") if output_hidden_states else None
 
-        
+
         unfinished_sequences = torch.ones(input_ids.shape[0], dtype=torch.long, device=input_ids.device)
         this_peer_finished = False  # for ZeRO stage 3
         first = True
         layer_scores = {}
 
+        average_entropy = 0.0
+        average_entropy_count = 0
+
         while True:
             if synced_gpus:
-                
+
                 flag = torch.tensor(0.0 if this_peer_finished else 1.0, device=input_ids.device)
                 torch.distributed.all_reduce(flag, op=torch.distributed.ReduceOp.SUM)
                 if flag.item() == 0.0:
                     break
 
-            
+
             model_inputs = self.prepare_inputs_for_generation(input_ids, **model_kwargs)
 
             outputs = self(
@@ -116,9 +119,9 @@ def DTC_function():
                 output_hidden_states=True,
             )
 
-            
+
             final_layer_idx = len(outputs.hidden_states) - 1
-            
+
             if dtc_layer_lambda == "2": #Default option: fixed layer selection (2 layers before final)
                 base_layer_idx = max(0, final_layer_idx - int(dtc_layer_lambda))
 
@@ -135,7 +138,7 @@ def DTC_function():
                     sim = F.cosine_similarity(logits, prev_logits, dim=-1)
                     similarities.append(sim.item())
                     prev_logits = logits
-                
+
                 # find least similar (minimum similarity)
                 least_sim_idx = min(range(len(similarities)), key=lambda i: similarities[i])
                 base_layer_idx = max(0, least_sim_idx + TRIMMED_LAYERS)
@@ -150,71 +153,84 @@ def DTC_function():
                     layer_score = self.lm_head(hs)[:, -1, :].float()
                     probs = F.softmax(layer_score, dim=-1)
                     m = 0.5 * (probs + prev_probs)
-                    jsd = 0.5 * (kl_div(m.log(), probs, reduction='sum') + 
+                    jsd = 0.5 * (kl_div(m.log(), probs, reduction='sum') +
                                 kl_div(m.log(), prev_probs, reduction='sum'))
                     jsd_scores.append(jsd.item())
                     prev_probs = probs
                 least_sim_idx = max(range(len(jsd_scores)), key=lambda i: jsd_scores[i])
                 base_layer_idx = max(0, least_sim_idx + TRIMMED_LAYERS )
-        
+
                 #OPTION 4: Using entropy differences
             elif dtc_layer_lambda == "entropy":
                 # Look for max entropy change. use the next layer.
                 TRIMMED_LAYERS  = 25
                 entropies = []
-                for i, hs in enumerate(outputs.hidden_states[TRIMMED_LAYERS:]): 
+                for i, hs in enumerate(outputs.hidden_states[TRIMMED_LAYERS:]):
                     layer_score = self.lm_head(hs)[:, -1, :].clone()
                     layer_score = layer_score.float()
                     probs = F.softmax(layer_score, dim=-1)
                     entropy = -(probs * torch.log(probs + 1e-10)).sum(dim=-1)
                     entropies.append(entropy.item())
-                entropy_diffs = [entropies[i] - entropies[i-1] for i in range(1, len(entropies))] 
-                sorted_indices = sorted(range(len(entropy_diffs)), key=lambda i: entropy_diffs[i], reverse=True) 
-                base_layer_idx = max(0, sorted_indices[0] + TRIMMED_LAYERS)  
+                entropy_diffs = [entropies[i] - entropies[i-1] for i in range(1, len(entropies))]
+                sorted_indices = sorted(range(len(entropy_diffs)), key=lambda i: entropy_diffs[i], reverse=True)
+                base_layer_idx = max(0, sorted_indices[0] + TRIMMED_LAYERS)
             else:
                 raise ValueError("Invalid dtc_layer_lambda value")
-            
 
-            
+
+
             final_logits_step = self.lm_head(outputs.hidden_states[final_layer_idx])[:, -1, :]  # [bsz, vocab]
             base_logits_step = self.lm_head(outputs.hidden_states[base_layer_idx])[:, -1, :]    # [bsz, vocab]
             softmax_final = F.softmax(final_logits_step.float(), dim=-1)
-            
+
             entropy = 0.0
-            
+
             if dtc_question_type == "vqa" or dtc_question_type == "mcq":
-                sorted_softmax, _ = torch.sort(softmax_final, descending=True)
-                
-                local_shannon_entropy = 0.0
-                sum_prop = 0.0
-                
-                cnt = 0
-                
-                pro_values = []
-                
-                for i, value in enumerate(sorted_softmax.flatten()):
-                    sum_prop += value.item()
-                    
-                    pro_values.append(value.item())
-                    
-                    cnt += 1
-                    
-                    if sum_prop >= dtc_top_p:
-                        break
-                
-                arr = np.array(pro_values)
-                
-                if len(arr) > 1:
-                    hmax = math.log2(len(arr))
-                else:
-                    hmax = 1
-                
-                arr = arr / np.sum(arr)
-                
-                for item in arr:
-                    local_shannon_entropy += item * math.log2(item)
-                
-                entropy = -(local_shannon_entropy / hmax)
+                top_variant = "p"
+                if top_variant == "p":
+                    sorted_softmax, _ = torch.sort(softmax_final, descending=True)
+
+                    local_shannon_entropy = 0.0
+                    sum_prop = 0.0
+
+                    cnt = 0
+
+                    pro_values = []
+
+                    for i, value in enumerate(sorted_softmax.flatten()):
+                        sum_prop += value.item()
+
+                        pro_values.append(value.item())
+
+                        cnt += 1
+
+                        if sum_prop >= dtc_top_p:
+                            break
+
+                    arr = np.array(pro_values)
+
+                    if len(arr) > 1:
+                        hmax = math.log2(len(arr))
+                    else:
+                        hmax = 1
+
+                    arr = arr / np.sum(arr)
+
+                    for item in arr:
+                        local_shannon_entropy += item * math.log2(item)
+
+                    entropy = -(local_shannon_entropy / hmax)
+                elif top_variant == "k":
+                    # compute entropy over top-k logits (safe: bound k by vocab size)
+                    eps = 1e-12
+                    vmax = final_logits_step.size(-1)
+                    k = min(10, vmax)
+                    topk_logits = torch.topk(final_logits_step, k=k, dim=-1).values  # [bsz, k]
+                    topk_probs = F.softmax(topk_logits, dim=-1).clamp(min=eps)      # normalize over top-k
+
+                    # per-sample entropy (base-2), then mean across batch if threshold is used
+                    per_sample_entropy = -(topk_probs * torch.log2(topk_probs)).sum(dim=-1)  # [bsz]
+                    entropy = float(per_sample_entropy.mean().item())
             else:
                 yes_prob = softmax_final.flatten()[3869].item()
                 no_prob = softmax_final.flatten()[1939].item()
@@ -240,7 +256,7 @@ def DTC_function():
                     probs_thresh = torch.min(min_thresh, probs_max + math.log(relative_top)).unsqueeze(-1)  # [bsz,1]
                     mask = final_logits_norm < probs_thresh  # [bsz, vocab]
 
-       
+
                     final_logits_norm = final_logits_norm.masked_fill(mask, float("-inf"))
                     base_logits_norm = base_logits_norm.masked_fill(mask, float("-inf"))
 
@@ -248,20 +264,18 @@ def DTC_function():
                 process_logits = torch.nan_to_num(process_logits, nan=-1e9)
                 next_token_logits = process_logits.to(final_logits_step.dtype)  # 还原到原 dtype（可能是 half）
             else:
-               
+
                 next_token_logits = final_logits_step
 
-            
             if first:
                 for i, hs in enumerate(outputs.hidden_states):
                     layer_logits_i = self.lm_head(hs)[:, -1, :]  # [bsz, vocab]
                     layer_scores[i] = logits_processor(input_ids, layer_logits_i)
                 first = False
 
-            
+
             next_tokens_scores = logits_processor(input_ids, next_token_logits)
 
-            
             if return_dict_in_generate and output_scores:
                 scores += (next_tokens_scores,)
 
@@ -278,7 +292,7 @@ def DTC_function():
                     else:
                         decoder_hidden_states += (outputs.hidden_states,)
 
-            
+
             next_tokens = torch.argmax(next_tokens_scores, dim=-1)
 
             device = next_tokens.device
@@ -289,18 +303,18 @@ def DTC_function():
                     raise ValueError("If `eos_token_id` is defined, make sure that `pad_token_id` is defined.")
                 next_tokens = next_tokens * unfinished_sequences + pad_token_id * (1 - unfinished_sequences)
 
-            
+
             input_ids = torch.cat([input_ids, next_tokens[:, None]], dim=-1)
 
             if streamer is not None:
                 streamer.put(next_tokens.cpu())
 
-            
+
             model_kwargs = self._update_model_kwargs_for_generation(
                 outputs, model_kwargs, is_encoder_decoder=self.config.is_encoder_decoder
             )
 
-          
+
             if eos_token_id_tensor is not None:
                 eos_token_id_tensor = eos_token_id_tensor.to(device)
                 unfinished_sequences = unfinished_sequences.mul(
@@ -320,10 +334,12 @@ def DTC_function():
         if streamer is not None:
             streamer.end()
 
-        
+
         if return_dict_in_generate:
+            if average_entropy_count > 0:
+                average_entropy = average_entropy / average_entropy_count
             if self.config.is_encoder_decoder:
-                return layer_scores, GenerateEncoderDecoderOutput(
+                return average_entropy, layer_scores, GenerateEncoderDecoderOutput(
                     sequences=input_ids,
                     scores=scores,
                     encoder_attentions=encoder_attentions,
@@ -334,7 +350,7 @@ def DTC_function():
                     past_key_values=model_kwargs.get("past_key_values"),
                 )
             else:
-                return layer_scores, GenerateDecoderOnlyOutput(
+                return average_entropy, layer_scores, GenerateDecoderOnlyOutput(
                     sequences=input_ids,
                     scores=scores,
                     attentions=decoder_attentions,
@@ -344,7 +360,7 @@ def DTC_function():
         else:
             return input_ids
 
-    
+
     GenerationMixin.greedy_search = greedy_search_redefine
     llava_llama.LlavaLlamaForCausalLM.greedy_search = greedy_search_redefine
 

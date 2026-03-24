@@ -21,6 +21,10 @@ from transformers import (
     AutoModelForSequenceClassification,
 )
 
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, auc
+import numpy as np   # <-- added
+import math
 
 # configurable defaults
 DEFAULT_PATH = Path("Experiment_Results/DTC_Quantized_7B/YesNo_results.jsonl")
@@ -62,6 +66,9 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
     total_lines = 0
     ambiguous_responses = set()
 
+    stats_path = path.with_stem(f"{path.stem}_stats")
+    stats_file = open(os.path.expanduser(stats_path), "w")
+
     with path.open("r", encoding="utf-8") as fh:
         for i, line in enumerate(fh, start=1):
             line = line.strip()
@@ -97,12 +104,17 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
                 # both parsed as MCQ choices; count per-class TP/FP
                 # true positive when predicted == label
                 if resp_choice == label_choice:
+                    obj["is_correct"] = True
                     counts[f"mcq_TP_{resp_choice}"] += 1
                     counts[f"mcq_correct_{relation_type}"] += 1
                 else:
+                    obj["is_correct"] = False
                     counts[f"mcq_FP_{resp_choice}"] += 1
                     counts[f"mcq_FN_{label_choice}"] += 1
                     counts[f"mcq_wrong_{relation_type}"] += 1
+
+            stats_file.write(json.dumps(obj) + "\n")
+        stats_file.close()
     # per-class MCQ precision (for choices a,b,c,d)
     per_class_mcq = {}
     prec_vals = []
@@ -206,6 +218,9 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
     ambiguous_gold_values = set()
     ambiguous_pred_values = set()
 
+    stats_path = path.with_stem(f"{path.stem}_stats")
+    stats_file = open(os.path.expanduser(stats_path), "w")
+
     with path.open("r", encoding="utf-8") as fh:
         for i, line in enumerate(fh, start=1):
             line = line.strip()
@@ -216,6 +231,8 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
                 obj = json.loads(line)
             except Exception:
                 counts["parse_error"] += 1
+                print("Parse error")
+                exit(1)
                 continue
 
             title = path.stem
@@ -244,18 +261,29 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
             relation_type = obj.get("relation_type", "unknown")
             if gold is not None and pred is not None:
                 counts[f"evaluated_{relation_type}"] += 1
+
+                obj["is_correct"] = (pred == gold)
+
                 if pred == "yes" and gold == "yes":
                     counts["TP"] += 1
                     counts["TP_" + relation_type] += 1
+                    obj["confusion_type"] = "TP"
                 elif pred == "no" and gold == "no":
                     counts["TN"] += 1
                     counts["TN_" + relation_type] += 1
+                    obj["confusion_type"] = "TN"
                 elif pred == "no" and gold == "yes":
                     counts["FN"] += 1
                     counts["FN_" + relation_type] += 1
+                    obj["confusion_type"] = "FN"
                 elif pred == "yes" and gold == "no":
                     counts["FP"] += 1
                     counts["FP_" + relation_type] += 1
+                    obj["confusion_type"] = "FP"
+
+            stats_file.write(json.dumps(obj) + "\n")
+        stats_file.close()
+
 
 
     precision = counts.get("TP", 0) / (counts.get("TP", 0) + counts.get("FP", 0)) if (counts.get("TP", 0) + counts.get("FP", 0)) > 0 else None
@@ -263,6 +291,10 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
     f1 = (2 * precision * recall) / (precision + recall) if precision is not None and recall is not None and (precision + recall) > 0 else None 
     correct = counts.get("TP", 0) + counts.get("TN", 0)
     incorrect = counts.get("FP", 0) + counts.get("FN", 0)
+    tp = counts.get("TP", 0)
+    fp = counts.get("FP", 0)
+    tn = counts.get("TN", 0)
+    fn = counts.get("FN", 0)
     pred_missing = counts.get("pred_missing_or_ambiguous_total", 0)
     pred_missing_yes = counts.get("pred_missing_or_ambiguous_label_yes", 0)
     pred_missing_no = counts.get("pred_missing_or_ambiguous_label_no", 0)
@@ -301,6 +333,10 @@ def evaluate_yesno(path: Path, detailed_metrics: bool = False):
         "hallucination_rate_over_all_lines": hallucination_rate_all,
         "ambiguous_gold_examples": sorted(ambiguous_gold_values),
         "ambiguous_pred_examples": sorted(ambiguous_pred_values),
+        "tp": tp,
+        "tn": tn,
+        "fp": fp,
+        "fn": fn,
     } if detailed_metrics else {
         "total_lines": total_lines,
         "evaluated_pairs": evaluated,
@@ -365,7 +401,10 @@ def evaluate_vqa(answer_path: Path, model_path: str):
     
     re_pattern = r'\<.*?\>'
     device = next(model.parameters()).device
-    
+
+    stats_path = answer_path.with_stem(f"{answer_path.stem}_stats")
+    stats_file = open(os.path.expanduser(stats_path), "w")
+
     for item in tqdm(answers):
         
         response = re.sub(re_pattern, '', item['response'].strip())
@@ -379,15 +418,21 @@ def evaluate_vqa(answer_path: Path, model_path: str):
             model_response = are_equivalent(label, response, model, tokenizer, device)
             
             if model_response == "yes":
+                item["is_correct"] = True
                 counts["equivalent"] = counts.get('equivalent', 0) + 1
                 counts[f'{relation_type}_equivalent'] = counts.get(f'{relation_type}_equivalent', 0) + 1
             else:
+                item["is_correct"] = False
                 counts["different"] = counts.get('different', 0) + 1
                 counts[f'{relation_type}_different'] = counts.get(f'{relation_type}_different', 0) + 1
         else:
             counts["ambiguous"] = counts.get("ambiguous", 0) + 1
             counts[f'{relation_type}_ambiguous'] = counts.get(f'{relation_type}_ambiguous', 0) + 1
-    
+
+        stats_file.write(json.dumps(item) + "\n")
+    stats_file.close()
+
+
     total = len(answers)
     
     summary = {
@@ -410,12 +455,91 @@ def evaluate_vqa(answer_path: Path, model_path: str):
 
     return out
 
+def evaluate_auroc(file_path, base_model_file_path):
+
+    y_true = []   # 1 = base model wrong, 0 = base model correct
+    scores = []   # entropy per example
+
+    skipped = 0
+    with open(file_path, "r") as f, \
+         open(base_model_file_path, "r") as f_base:
+        for line, line_base in zip(f, f_base):
+            if not line or not line_base:
+                if line != line_base:  # Only warn if one of them is empty
+                    print("Warning: One of the lines is empty. Skipping this pair.")
+                continue
+
+            ex = json.loads(line)
+            ex_base = json.loads(line_base)
+
+            if ex["entropy"] is None or math.isnan(ex["entropy"]):
+                print("!!! Skipping due to missing entropy")
+                continue
+
+            if not "is_correct" in ex_base:
+                #not all model responses can be interpreted
+                skipped += 1
+                continue
+
+            # positive = base model is wrong (doesn't match label)
+            is_wrong = 1 if not ex_base["is_correct"] else 0
+            y_true.append(is_wrong)
+
+            # score = entropy(yes,no) (higher = more uncertain)
+            score = ex["entropy"]
+            scores.append(score)
+        if skipped:
+            print(f"{skipped=}")
+
+    # ROC where positive class = "base model wrong"
+    fpr, tpr, thresholds = roc_curve(y_true, scores)
+    roc_auc = auc(fpr, tpr)
+
+    print("AUROC (detecting base-model errors using entropy):", roc_auc)
+
+    plt.figure()
+    plt.plot(fpr, tpr, label=f"ROC curve (AUC = {roc_auc:.3f})")
+    plt.plot([0, 1], [0, 1], linestyle="--")
+
+    # ---------- mark threshold on the ROC curve ----------
+    target_threshold = 0.9 #adjust-if-needed
+
+    # thresholds are in the same order as fpr/tpr; find nearest one
+    idx = (np.abs(thresholds - target_threshold)).argmin()
+    th_at_idx = thresholds[idx]
+    fpr_point = fpr[idx]
+    tpr_point = tpr[idx]
+
+    print(f"Closest ROC threshold to {target_threshold} is {th_at_idx:.4f}")
+    print(f"At this threshold: FPR = {fpr_point:.4f}, TPR = {tpr_point:.4f}")
+
+    # plot the point
+    plt.scatter([fpr_point], [tpr_point], s=50, color="red",
+                label=f"threshold≈{target_threshold} (FPR={fpr_point:.2f}, TPR={tpr_point:.2f})")
+    plt.text(fpr_point, tpr_point,
+            f"  τ≈{th_at_idx:.2f}",
+            color="red", fontsize=8)
+
+    # -----------------------------------------------------------
+
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    title = "ROC: detect base-model mistakes using top-k=10 entropy" #adjust-if-needed
+    if skipped:
+        title += f" ({skipped} not evaluated)"
+    #plt.title(title)
+    plt.legend(loc="lower right")
+    plt.grid(True)
+    plt.savefig(os.path.expanduser('~/Desktop/auroc.svg'))
+    plt.show()
+
+
 def main():
     p = argparse.ArgumentParser(description="Evaluate Yes/No results JSONL (files or root dirs)")
     p.add_argument("paths", nargs="*", help="path(s) to JSONL results file(s) or root directories")
     p.add_argument("--out", "-o", default=str(OUT_REPORT), help="output report JSON path")
     p.add_argument("--detailed_metrics", action="store_true", help="include detailed metrics in the output report")
-    p.add_argument("--model_path", help="path to the deberta or other eval model")
+    p.add_argument("--model_path", default="microsoft/deberta-v2-xlarge-mnli", help="path to the deberta or other eval model")
     args = p.parse_args()
     
     paths = []
@@ -455,7 +579,7 @@ def main():
         elif "multichoice" in stem or "mcq" in stem:
             #ToDo : handle MCQ lines where response is not a letter A-D and instead whole words.
             result = evaluate_mcq_choice(path, args.detailed_metrics)
-        elif "yes" in stem:
+        elif "yes" in stem or "yn" in stem:
             result = evaluate_yesno(path, args.detailed_metrics)
         else:
             print(f"Skipping unrecognized file (not YesNo or Multichoice or VQA): {path}")
@@ -472,4 +596,15 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    evaluate_auroc(
+                    "/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/DTC_13B/llava13b_YESNO_DTC_2T_entropy_results.jsonl",
+                    #"/home/nl97naca/results/dtc-topk-10-avg-entropy/mcq_thresh_0_9_stats.jsonl",
+                    #"/home/nl97naca/results/dtc-topk-10-avg-entropy/vqa_thresh_0_9_stats.jsonl",
+
+
+                    base_model_file_path="/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_YESNO_results_with_rt_stats.jsonl"
+                    #base_model_file_path="/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_MultiChoice_with_rt_stats.jsonl"
+                    #base_model_file_path="/home/nl97naca/Mitigate-Relation-Hallucination/Updated_Experiment_Results/13B_noDTC/llava13b_VQA_Results_with_rt_stats.jsonl"
+                    #^PAY ATTENTION THAT THIS IS SAME QUESTION TYPE
+                    )
+    #main()

@@ -9,7 +9,7 @@ import os
 import json
 from tqdm import tqdm
 import sys
-import debugpy
+#import debugpy
 # try:
 #     # 5678 is the default attach port in the VS Code debug configurations. Unless a host and port are specified, host defaults to 127.0.0.1
 #     debugpy.listen(("localhost", 9501))
@@ -135,7 +135,7 @@ def eval_model(args):
 
         with torch.inference_mode():
             if args.enable_dtc:
-                layer_score, output_ids = model.generate(
+                entropy, layer_score, output_ids = model.generate(
                     input_ids,
                     images=image_tensor.unsqueeze(0).half().cuda(),
                     image_sizes=[image.size],
@@ -176,6 +176,8 @@ def eval_model(args):
                     "image_id": line["image_id"],
                     "query_prompt": cur_prompt,
                     "response": outputs,
+                    "relation_type": line["relation_type"],
+                    "entropy": entropy if args.enable_dtc else None,
                     "label": label,
                     "mllm_name": mllm,
                     "entropy": entropy if args.enable_dtc else None,
