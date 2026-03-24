@@ -1,3 +1,9 @@
+'''
+This script is for evaluating LLaVA on R-Bench dataset using VCD mitigation strategy, and contains three types of questions: image-level, instance-level-box and instance-level-mask. 
+The answers are saved in a jsonl file, which can be further evaluated by the official R-Bench evaluation script: Mitigate-Relation-Hallucination/r_bench_eval.py
+For more details: https://github.com/mrwu-mac/R-Bench
+'''
+
 import argparse
 import torch
 import os, sys
@@ -20,43 +26,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from VCD.vcd_utils.vcd_add_noise import add_diffusion_noise, add_noise_patch
 from VCD.vcd_utils.vcd_sample import evolve_vcd_sampling, save_attention_maps
-from Utils.utils import shuffle_patch_image
+from Utils.utils import shuffle_patch_image,tensor_to_img
 import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
-# from r-bench utils
 from .rbench_utils import draw_box, draw_mask, instance_qs_construct
 import random
 from transformers.trainer_utils import enable_full_determinism
 from transformers import set_seed
-
-def tensor_to_img(tensor):
-    img = tensor.numpy()
-    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
-    std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
-    unnorm = tensor * std + mean
-    img = unnorm.clamp(0, 1)           # just in case
-    img = img.permute(1, 2, 0)         # CHW → HWC
-    img = (img * 255).byte().numpy()   # scale and convert
-    return Image.fromarray(img)
-    
-def draw_bounding_boxes(image_tensor, scaled_bbs, color="red", width=2):
-    image_tensor = image_tensor.clone()
-    mean = torch.tensor([0.485, 0.456, 0.406], device=image_tensor.device).view(3, 1, 1)
-    std = torch.tensor([0.229, 0.224, 0.225], device=image_tensor.device).view(3, 1, 1)
-    img = image_tensor * std + mean
-    img = img.clamp(0, 1)
-    img = (img.permute(1, 2, 0) * 255).byte().cpu().numpy()
-    noisy_img = Image.fromarray(img)
-    draw = ImageDraw.Draw(noisy_img)
-    # Draw using the SCALED bounding boxes (not the original detections)
-    for bb in scaled_bbs:
-        draw.rectangle(
-            [bb["x"], bb["y"], bb["x"] + bb["w"], bb["y"] + bb["h"]],
-            outline=color,
-            width=width
-        )
-    return noisy_img
 
 
 def split_list(lst, n):
@@ -250,8 +227,6 @@ def eval_model(args):
                 output_scores=True,
                 output_attentions=True
             )
-        
-        # scores = generated_outputs.scores
 
 
         input_token_len = input_ids.shape[1]

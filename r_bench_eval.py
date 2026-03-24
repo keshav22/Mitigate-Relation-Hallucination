@@ -1,3 +1,9 @@
+
+'''
+Official R-Bench evaluation code. Please use this code to evaluate your model's performance on R-Bench. 
+For more details refer: https://github.com/mrwu-mac/R-Bench
+'''
+
 import os
 import json
 import argparse

@@ -1,3 +1,8 @@
+'''
+This script is for evaluating base LLaVA model on R-Bench dataset, and contains three types of questions: image-level, instance-level-box and instance-level-mask. 
+The answers are saved in a jsonl file, which can be further evaluated by the official R-Bench evaluation script: Mitigate-Relation-Hallucination/r_bench_eval.py
+For more details: https://github.com/mrwu-mac/R-Bench
+'''
 import argparse
 import torch
 import os

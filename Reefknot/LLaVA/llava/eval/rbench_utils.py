@@ -1,4 +1,7 @@
-
+'''
+Utils file realated to R-Bench evaluation, including visualization and question construction.
+For more details: https://github.com/mrwu-mac/R-Bench
+'''
 import os
 import math
 from PIL import Image, ImageDraw

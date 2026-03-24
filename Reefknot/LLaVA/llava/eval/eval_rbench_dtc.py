@@ -1,3 +1,9 @@
+'''
+This script is for evaluating LLaVA on R-Bench dataset using Reefknot's DTC mitigation strategy, and contains three types of questions: image-level, instance-level-box and instance-level-mask. 
+The answers are saved in a jsonl file, which can be further evaluated by the official R-Bench evaluation script: Mitigate-Relation-Hallucination/r_bench_eval.py
+For more details: https://github.com/mrwu-mac/R-Bench
+'''
+
 import argparse
 import torch
 import os
@@ -36,7 +42,7 @@ def get_chunk(lst, n, k):
     return chunks[k]
 
 
-# Custom dataset class
+# Custom dataset class - load images and questions
 class CustomDataset(Dataset):
     def __init__(self, questions, image_folder, tokenizer, image_processor, model_config, qtype, conv_mode ):
         self.questions = questions
@@ -96,7 +102,18 @@ def create_data_loader(questions, image_folder, tokenizer, image_processor, mode
 
 
 def eval_model(args):
-    if args.enable_dtc:
+    '''
+    Main evaluation function. It loads the model, processes the questions and images, 
+    generates answers, and saves them in a jsonl file.
+
+    If DTC is enabled, it applies the DTC patch on the model before evaluation. 
+    The generation process is also modified to include DTC-specific parameters such as alpha, threshold, and 
+    layer_lambda.
+
+    '''
+
+
+    if args.enable_dtc: #Applies DTC patch on the model
         DTC_function()
     # Model
     disable_torch_init()
@@ -107,7 +124,6 @@ def eval_model(args):
     # questions = [json.loads(q) for q in open(os.path.expanduser(args.question_file), "r")]
     questions = json.load(open(os.path.expanduser(args.question_file), "r"))
     questions = get_chunk(questions, args.num_chunks, args.chunk_idx)
-    # print(len(questions))
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
     ans_file = open(answers_file, "w")
@@ -143,9 +159,6 @@ def eval_model(args):
                     threshold=args.threshold,
                     layer_lambda=args.layer_lambda
                 ) 
-                # layer_score["label"] = label
-                # with open(os.path.join("/home/mt45dumo/runenv/logits/dtc_layer_scores", f"{line_counter}_layer_scores.pt"), "wb") as f:
-                #     torch.save(layer_score, f)
                 output_ids = output_ids.sequences
             else:
                 output_ids = model.generate(
@@ -161,14 +174,6 @@ def eval_model(args):
                 output_scores=True
             )
 
-        
-        
-        # scores = generated_outputs.scores
-
-
-        # input_token_len = input_ids.shape[1]
-        
-        # raw_tokens = output_ids[:, input_token_len:]
         outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0]
 
         outputs = outputs.strip()

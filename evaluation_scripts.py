@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""
+
+Evaluation scripts used for Reefknot Benchmark. Can evaluate Yes/No and Multiple Choice questions, as well as VQA equivalence using a model-based approach.
+
+IMPORTANT:
+Assumes JSON files are named with 'yesno' or 'vqa' or 'multichoice' in the filename to identify type.
+"""
 import json
 import re
 from pathlib import Path
@@ -12,10 +19,7 @@ from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
 )
-"""
-IMPORTANT:
-Assumes JSON files are named with 'yesno' or 'vqa' or 'multichoice' in the filename to identify type.
-"""
+
 
 # configurable defaults
 DEFAULT_PATH = Path("Experiment_Results/DTC_Quantized_7B/YesNo_results.jsonl")
@@ -183,9 +187,6 @@ def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):
     } if detailed_metrics else {
         "total_lines": total_lines,
         "evaluated_lines": counts.get("evaluated_mcq", 0),
-        "accuracy_over_all_lines": accuracy_total,
-        "accuracy_over_evaluated_lines": accuracy_evaluated,
-        "accuracy_by_type": accuracy_by_type,
         "hallucination_rate_by_type": hallucination_rate_by_type,
         "hallucination_rate_over_all_lines": hallucination_rate_total,
         "hallucination_rate_over_evaluated_lines": hallucination_rate_evaluated,

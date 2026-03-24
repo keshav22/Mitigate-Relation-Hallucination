@@ -63,10 +63,9 @@ def shuffle_patch_image(img_tensor, patch_size, p, apply_transforms=False):
     # 2. Permute the patches
     idx = torch.randperm(patches.shape[0])
     patches = patches[idx]
-    # print("Patch indices after shuffle:", idx)
 
     if apply_transforms == True:
-        # 3. Apply Random Transformations to each patch
+        # 3. Apply Random Transformations to each patch if needed
         for i in range(patches.shape[0]):
             # Random rotation (0, 90, 180, or 270 degrees) (50% chance)
             
@@ -83,7 +82,36 @@ def shuffle_patch_image(img_tensor, patch_size, p, apply_transforms=False):
                 patches[i] = torch.flip(patches[i], dims=[-2])
 
 
-    # 3. Put them back into an image
+    # 4. Put them back into an image
     shuffled_img = rearrange(patches, '(h w) c p1 p2 -> c (h p1) (w p2)', h=orig_h//patch_size, w=orig_w//patch_size)
 
     return shuffled_img
+
+
+def tensor_to_img(tensor):
+    img = tensor.numpy()
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+    std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+    unnorm = tensor * std + mean
+    img = unnorm.clamp(0, 1)           # just in case
+    img = img.permute(1, 2, 0)         # CHW → HWC
+    img = (img * 255).byte().numpy()   # scale and convert
+    return Image.fromarray(img)
+
+def draw_bounding_boxes(image_tensor, scaled_bbs, color="red", width=2):
+    image_tensor = image_tensor.clone()
+    mean = torch.tensor([0.485, 0.456, 0.406], device=image_tensor.device).view(3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225], device=image_tensor.device).view(3, 1, 1)
+    img = image_tensor * std + mean
+    img = img.clamp(0, 1)
+    img = (img.permute(1, 2, 0) * 255).byte().cpu().numpy()
+    noisy_img = Image.fromarray(img)
+    draw = ImageDraw.Draw(noisy_img)
+    # Draw using the SCALED bounding boxes (not the original detections)
+    for bb in scaled_bbs:
+        draw.rectangle(
+            [bb["x"], bb["y"], bb["x"] + bb["w"], bb["y"] + bb["h"]],
+            outline=color,
+            width=width
+        )
+    return noisy_img
