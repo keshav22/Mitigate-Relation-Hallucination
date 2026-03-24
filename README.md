@@ -40,7 +40,7 @@ While a formal `requirements.txt` is not provided, the following models, tools, 
 #### Reefknot Benchmark
 Built on Visual Genome; includes Y/N, MCQ, and VQA subsets.
 Following scripts run inference using different methods on Reefknot.
-* **VCD (Visual Contrastive Decoding) Based**: [VCD] (./Reefknot/LLaVA/vcd_patch_llava.py)
+* **VCD (Visual Contrastive Decoding) Based**: [VCD](./Reefknot/LLaVA/vcd_patch_llava.py)
 * **DTC (Detect-then-Calibrate)**: [DTC](./Reefknot/LLaVA/infer_LLaVA_yesandno.py)
 
 The generated result files can be evaluated using: [Reefknot Evaluation](./Mitigate-Relation-Hallucination/evaluation_scripts.py)
@@ -48,7 +48,7 @@ The generated result files can be evaluated using: [Reefknot Evaluation](./Mitig
 #### R-Bench
 Specifically the image-level subset containing Y/N questions.
 Following scripts run the inference for different methods on R-Bench Benchmark Dataset:
-* **VCD (Visual Contrastive Decoding) Based**: [VCD] (./Reefknot/LLaVA/llava/eval/eval_rbench_vcd.py)
+* **VCD (Visual Contrastive Decoding) Based**: [VCD](./Reefknot/LLaVA/llava/eval/eval_rbench_vcd.py)
 * **DTC (Detect-then-Calibrate)**: [DTC](./Reefknot/LLaVA/llava/eval/eval_rbench_dtc.py)
 * **Base Model**: [Base LLAVA Model](./Reefknot/LLaVA/llava/eval/eval_rbench.py)
 
