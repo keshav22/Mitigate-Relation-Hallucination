@@ -7,8 +7,8 @@ This repository contains the code and experiments for investigating whether Visu
 * [LLaVA](https://github.com/haotian-liu/LLaVA) - Large Language and Vision Assistant
 * [Grounding DINO](https://github.com/IDEA-Research/GroundingDINO) - Object detection and grounding
 * [Visual Contrastive Decoding](https://github.com/DAMO-NLP-SG/VCD/tree/d6568ff81b8fd306a49e630df44f2db5c2300191) - Mitigating object hallucinations in LVLMs
-* [ReefKnot] (https://github.com/JackChen-seu/Reefknot/tree/310ec0c468f7763440ca4ffb53f1fe00d9a3deb7) - Reefknot: A Benchmark for Relation Hallucination Evaluation, Analysis and Mitigation in MVLMs
-* [R-Bench] (https://github.com/mrwu-mac/R-Bench) - R-Bench: Benchmark with image and instance Level Yes/No Questions
+* [ReefKnot](https://github.com/JackChen-seu/Reefknot/tree/310ec0c468f7763440ca4ffb53f1fe00d9a3deb7) - Reefknot: A Benchmark for Relation Hallucination Evaluation, Analysis and Mitigation in MVLMs
+* [R-Bench](https://github.com/mrwu-mac/R-Bench) - R-Bench: Benchmark with image and instance Level Yes/No Questions
 
 ## Key Methods & Features
 * **Relation-Aware VCD**: Adapts standard VCD by applying Gaussian noise only to specific detected objects or regions instead of the entire image.
@@ -31,9 +31,9 @@ This repository contains the code and experiments for investigating whether Visu
 The following models, tools, and environments are necessary to reproduce the experiments of this project:
 
 ### 1. Models & Evaluation Libraries
-* **LVLMs**: Set up the environments for **LLaVA-1.5-13B** and **Qwen-VL-7B**.
+* **LVLMs**: Set up the environments for **[LLaVA-1.5-13B](https://huggingface.co/liuhaotian/llava-v1.5-13b)** and **[Qwen-VL-7B](https://huggingface.co/Qwen/Qwen-VL-Chat)**.
 * **Grounding DINO**: Required for the object detection and targeted perturbation steps.
-* **DeBERTa-v2**: Used for bidirectional textual entailment to evaluate VQA question types.
+* **[DeBERTa-v2](https://huggingface.co/microsoft/deberta-v2-xlarge-mnli)**: Used for bidirectional textual entailment to evaluate VQA question types.
 
 ### 2. Datasets
 
