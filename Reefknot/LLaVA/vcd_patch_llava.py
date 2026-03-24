@@ -371,7 +371,7 @@ def eval_model(args):
                                 IMAGE_TOKEN_INDEX,
                                 tokenizer,
                                 model_path,
-                                output_ids.attentions_cd,
+                                output_ids.attention_cd,
                                 img_cd,
                                 line["image_id"],
                                 args.question_file,

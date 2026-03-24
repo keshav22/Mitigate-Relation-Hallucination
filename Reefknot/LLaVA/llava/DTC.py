@@ -135,9 +135,9 @@ def DTC_function():
                 for i, hs in enumerate(outputs.hidden_states[TRIMMED_LAYERS:]):
                     layer_score = self.lm_head(hs)[:, -1, :].clone()
                     layer_score = layer_score.float()
-                    sim = F.cosine_similarity(logits, prev_logits, dim=-1)
+                    sim = F.cosine_similarity(layer_score, prev_logits, dim=-1)
                     similarities.append(sim.item())
-                    prev_logits = logits
+                    prev_logits = layer_score
 
                 # find least similar (minimum similarity)
                 least_sim_idx = min(range(len(similarities)), key=lambda i: similarities[i])
