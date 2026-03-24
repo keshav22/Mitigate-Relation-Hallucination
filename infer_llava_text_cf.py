@@ -1,3 +1,6 @@
+"""
+Pure counterfactual variant where only the textual prompt was modified while keeping the input image unchanged. (Table 7)
+"""
 import argparse
 # from Reefknot.LLaVA.infer_LLaVA_yesandno import get_chunk, get_path
 import torch

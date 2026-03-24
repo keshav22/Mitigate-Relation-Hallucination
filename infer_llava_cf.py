@@ -1,3 +1,6 @@
+"""
+Infer script for adding 3 counterfactual prompts in addition to the perturbed image as a contrastive sample.
+"""
 import argparse
 import torch
 import os
