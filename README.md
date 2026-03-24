@@ -5,9 +5,9 @@ This repository contains the code and experiments for investigating whether Visu
 
 ## Related Repositories
 * [LLaVA](https://github.com/haotian-liu/LLaVA) - Large Language and Vision Assistant
-* [Grounding DINO](https://github.com/IDEA-Research/Grounding-DINO) - Object detection and grounding
-* [Visual Contrastive Decoding](https://github.com/yuhangzang/VCD) - Mitigating object hallucinations in LVLMs
-* [ReefKnot] (https://github.com/JackChen-seu/Reefknot) - Reefknot: A Benchmark for Relation Hallucination Evaluation, Analysis and Mitigation in MVLMs
+* [Grounding DINO](https://github.com/IDEA-Research/GroundingDINO) - Object detection and grounding
+* [Visual Contrastive Decoding](https://github.com/DAMO-NLP-SG/VCD/tree/d6568ff81b8fd306a49e630df44f2db5c2300191) - Mitigating object hallucinations in LVLMs
+* [ReefKnot] (https://github.com/JackChen-seu/Reefknot/tree/310ec0c468f7763440ca4ffb53f1fe00d9a3deb7) - Reefknot: A Benchmark for Relation Hallucination Evaluation, Analysis and Mitigation in MVLMs
 * [R-Bench] (https://github.com/mrwu-mac/R-Bench) - R-Bench: Benchmark with image and instance Level Yes/No Questions
 
 ## Key Methods & Features
