@@ -39,9 +39,13 @@ def clean_prompt(prompt: str) -> str:
         '',
         prompt
     )
+    
+    # MCQ+VQA
+    prompt = re.sub(r"^what is the relation with ", "", prompt)
+    prompt = re.sub(r"in this photo\?.*", "", prompt)
 
-    prompt = re.sub(r'\s+', ' ', prompt).strip()
-    prompt = " . ".join(prompt.split()) + " ."   
+    prompt = re.sub(r"\s+", " ", prompt).strip()
+    prompt = " . ".join(prompt.split()) + " ."  
     return prompt
 
 def norm_cxcywh_to_xywh_pixel(box, W, H):
