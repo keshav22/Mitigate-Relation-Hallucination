@@ -33,7 +33,7 @@ from llava.model.builder import load_pretrained_model
 from collections import Counter
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from Utils.utils import normalize_to_yesno
+from Utils.utils import normalize_to_yesno, calculate_entropy
 from transformers.generation import SampleEncoderDecoderOutput
 from transformers.generation.utils import SampleDecoderOnlyOutput
 
@@ -111,27 +111,6 @@ def aggregate_counts_and_save(pred, label, cd_logits, next_token_logits, next_to
     torch.save(save_dict, output_path)
 
 
-def calculate_entropy(logits: torch.Tensor, k: int = -1) -> float:
-    """
-    Calculate the entropy of the top-k probabilities.
-    
-    Args:
-        probs: Tensor of shape (vocab_size,)
-        k: Number of top probabilities to consider for entropy calculation. -1: all probabilities.
-        
-    Returns:
-        Entropy value of all/top-k probabilities.
-    """
-
-    probs = nn.functional.softmax(logits, dim=-1)
-    if k > 0:
-        # Normalize to sum to 1 after selecting top-k probabilities
-        top_k_probs, _ = torch.topk(probs, k)
-        top_k_probs = top_k_probs / top_k_probs.sum()  
-        entropy = -torch.sum(top_k_probs * torch.log(top_k_probs + 1e-10)).item()  # Adding small value to avoid log(0)
-    else:
-        entropy = -torch.sum(probs * torch.log(probs + 1e-10)).item()
-    return entropy
 
 def sample(
     self,
@@ -150,7 +129,6 @@ def sample(
     streamer: Optional["BaseStreamer"] = None,
     **model_kwargs,
 ) -> Union[SampleOutput, torch.LongTensor]:
-    prompt_input_ids = input_ids
     # print("Using patched sample function for VCD...")
 
     # init values
@@ -227,7 +205,7 @@ def sample(
         outputs = self(
             **model_inputs,
             return_dict=True,
-            output_attentions=True,
+            output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
         )
 
@@ -264,7 +242,7 @@ def sample(
             outputs_cd = self(
                 **model_inputs_cd,
                 return_dict=True,
-                output_attentions=True,
+                output_attentions=output_attentions_wo_img,
                 output_hidden_states=output_hidden_states_wo_img,
             )
 
@@ -319,7 +297,7 @@ def sample(
                 scores += (next_token_scores,)
             if output_attentions:
                 decoder_attentions += (
-                    (outputs.decoder_attentions,) if self.config.is_encoder_decoder else (outputs.attentions,) #nico: [original-vs-noised-attention]: outputs vs outputs_cd
+                    (outputs.decoder_attentions,) if self.config.is_encoder_decoder else (outputs.attentions,)
                 )
                 if self.config.is_encoder_decoder:
                     cross_attentions += (outputs.cross_attentions,)

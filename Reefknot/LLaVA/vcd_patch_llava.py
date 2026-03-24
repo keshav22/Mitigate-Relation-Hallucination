@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 from pathlib import Path
-from PIL import Image,ImageDraw
+from PIL import Image
 from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
 from llava.conversation import conv_templates, SeparatorStyle
 from llava.model.builder import load_pretrained_model
@@ -108,13 +108,6 @@ def eval_model(args):
             new_bounding_box["y"] = int((old_bounding_box["y"] + y_padding) * xy_scaling)
             new_bounding_box["w"] = int(old_bounding_box["w"] * xy_scaling)
             new_bounding_box["h"] = int(old_bounding_box["h"] * xy_scaling)
-
-            #save the image with bounding box for debugging
-            if line_counter % 100 == 0:
-                debug_dir = f"/home/mt45dumo/runenv/{args.experiment_name}_images"
-                noisy_image = draw_bounding_boxes(image_tensor, [new_bounding_box])
-                noisy_image.save(f"{debug_dir}/{line_counter}_with_BB.jpg")
-            
             image_tensor_cd = add_noise_patch(image_tensor, args.noise_step, new_bounding_box)
         
         
@@ -229,12 +222,11 @@ def eval_model(args):
                 use_cache=True,
                 return_dict_in_generate=True,
 
-                output_scores=True,
-                output_attentions=True
+                output_scores=True
             )
         
         outputs = tokenizer.batch_decode(
-            output_ids.sequences,
+            output_ids, 
             skip_special_tokens=True
         )[0].strip()
         print("output:", outputs)

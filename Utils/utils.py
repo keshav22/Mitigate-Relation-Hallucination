@@ -1,5 +1,6 @@
 from einops import rearrange
 import torch
+from torch import nn
 import os 
 from PIL import Image, ImageDraw
 
@@ -18,6 +19,29 @@ def get_path(image_id, image_folder):
     else:
         print('Cannot find image {}.jpg'.format(image_id))
         return None
+
+
+def calculate_entropy(logits: torch.Tensor, k: int = -1) -> float:
+    """
+    Calculate the entropy of the top-k probabilities.
+    
+    Args:
+        probs: Tensor of shape (vocab_size,)
+        k: Number of top probabilities to consider for entropy calculation. -1: all probabilities.
+        
+    Returns:
+        Entropy value of all/top-k probabilities.
+    """
+
+    probs = nn.functional.softmax(logits, dim=-1)
+    if k > 0:
+        # Normalize to sum to 1 after selecting top-k probabilities
+        top_k_probs, _ = torch.topk(probs, k)
+        top_k_probs = top_k_probs / top_k_probs.sum()  
+        entropy = -torch.sum(top_k_probs * torch.log(top_k_probs + 1e-10)).item()  # Adding small value to avoid log(0)
+    else:
+        entropy = -torch.sum(probs * torch.log(probs + 1e-10)).item()
+    return entropy
 
 import re
 WORD_YES_RE = re.compile(r"\byes\b", re.I)
