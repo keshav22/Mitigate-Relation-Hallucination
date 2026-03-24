@@ -15,6 +15,7 @@ import os
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
+from Utils.utils import normalize_to_yesno
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
@@ -51,29 +52,6 @@ def validate_mcq_choice(response, label):
     label_choice = extract_choice(label)
 
     return resp_choice, label_choice
-    
-
-def normalize_to_yesno(raw):
-    """
-    Convert various label/response strings to 'yes' / 'no' or None if ambiguous.
-    """
-    if raw is None or not isinstance(raw, str):
-        return None
-    s = str(raw).strip()
-    if not s:
-        return None
-    low = s.lower().strip().strip(".,:;\"'()[]{}")
-    if low in YES_TERMS:
-        return "yes"
-    if low in NO_TERMS:
-        return "no"
-    if WORD_YES_RE.search(s):
-        if WORD_NO_RE.search(s):
-            return None #ambiguous if both present
-        return "yes"
-    if WORD_NO_RE.search(s):
-        return "no"
-    return None
 
 
 def evaluate_mcq_choice(path: Path, detailed_metrics: bool = False):

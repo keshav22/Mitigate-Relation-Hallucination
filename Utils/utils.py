@@ -1,6 +1,8 @@
 from einops import rearrange
 import torch
 import os 
+from PIL import Image, ImageDraw
+
 def get_path(image_id, image_folder):
     Image_path1 = os.path.join(image_folder, 'VG_100K')
     Image_path2 = os.path.join(image_folder, 'VG_100K_2')
@@ -89,6 +91,9 @@ def shuffle_patch_image(img_tensor, patch_size, p, apply_transforms=False):
 
 
 def tensor_to_img(tensor):
+    '''
+    Convert a normalized image tensor (C, H, W) to a PIL Image.
+    '''
     img = tensor.numpy()
     mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
     std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
@@ -98,7 +103,18 @@ def tensor_to_img(tensor):
     img = (img * 255).byte().numpy()   # scale and convert
     return Image.fromarray(img)
 
+
 def draw_bounding_boxes(image_tensor, scaled_bbs, color="red", width=2):
+    '''
+    Draw bounding boxes on a normalized image tensor and return a PIL Image.
+     - image_tensor: (C, H, W) normalized image tensor
+     - scaled_bbs: list of dicts with keys 'x', 'y', 'w', 'h' for bounding box coordinates
+     - color: color for the bounding box (default: "red")
+     - width: line width for the bounding box (default: 2)
+     Returns:
+     - PIL Image with bounding boxes drawn
+     Note: The bounding boxes should be in the same scale as the input image tensor.
+    '''
     image_tensor = image_tensor.clone()
     mean = torch.tensor([0.485, 0.456, 0.406], device=image_tensor.device).view(3, 1, 1)
     std = torch.tensor([0.229, 0.224, 0.225], device=image_tensor.device).view(3, 1, 1)
