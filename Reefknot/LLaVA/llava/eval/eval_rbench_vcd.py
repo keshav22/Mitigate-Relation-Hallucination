@@ -194,8 +194,8 @@ def eval_model(args):
 
                 # print("image tensor cd after noise", image_tensor_cd)
                 if idx % 100 == 0:
-                    debug_dir = f"/home/mt45dumo/runenv/r_bench_gdino"
-                    Path(debug_dir).mkdir(parents=True, exist_ok=True)
+                    debug_dir = "~/runenv/r_bench_gdino"
+                    Path(debug_dir).expanduser().mkdir(parents=True, exist_ok=True)
                     noisy_img = draw_bounding_boxes(image_tensor_cd, scaled_bbs)
                     noisy_img.save(f"{debug_dir}/{idx}_noise_BB.jpg")
 
