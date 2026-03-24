@@ -40,7 +40,7 @@ The following models, tools, and environments are necessary to reproduce the exp
 #### Reefknot Benchmark
 Built on Visual Genome; includes Y/N, MCQ, and VQA subsets.
 Following scripts run inference using different methods on Reefknot.
-* **VCD (Visual Contrastive Decoding) Based**: [VCD](./Reefknot/LLaVA/vcd_patch_llava.py)
+* **VCD (Visual Contrastive Decoding) Based** (and base model): [VCD](./Reefknot/LLaVA/vcd_patch_llava.py)
 * **DTC (Detect-then-Calibrate)**: [DTC](./Reefknot/LLaVA/infer_LLaVA_yesandno.py)
 
 The generated result files can be evaluated using: [Reefknot Evaluation](./Mitigate-Relation-Hallucination/evaluation_scripts.py)
