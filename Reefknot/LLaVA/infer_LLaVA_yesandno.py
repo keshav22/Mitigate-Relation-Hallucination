@@ -85,8 +85,7 @@ def eval_model(args):
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(
-        model_path, args.model_base, model_name,
-        load_4bit=args.quantized, device_map="auto"
+        model_path, args.model_base, model_name, device_map="auto"
     )
 
     questions = [
@@ -170,6 +169,7 @@ def eval_model(args):
         outputs = tokenizer.batch_decode(
             output_ids, skip_special_tokens=True
         )[0].strip()
+        rel_type = line.get("relation_type", "unknown")
         ans_file.write(
             json.dumps(
                 {
@@ -177,7 +177,9 @@ def eval_model(args):
                     "query_prompt": cur_prompt,
                     "response": outputs,
                     "label": label,
-                    "mllm_name": mllm
+                    "mllm_name": mllm,
+                    "entropy": entropy if args.enable_dtc else None,
+                    "relation_type": rel_type
                 }
             )
             + "\n"
@@ -196,15 +198,14 @@ if __name__ == "__main__":
     parser.add_argument("--conv-mode", type=str, default="llava_v1")
     parser.add_argument("--num-chunks", type=int, default=1)
     parser.add_argument("--chunk-idx", type=int, default=0)
-    parser.add_argument("--temperature", type=float, default=0.2)
+    parser.add_argument("--temperature", type=float, default=0)
     parser.add_argument("--top_p", type=float, default=None)
     parser.add_argument("--num_beams", type=int, default=1)
     parser.add_argument("--max_new_tokens", type=int, default=2)
     parser.add_argument("--model_type", type=str, default=None)
     parser.add_argument("--apha", type=float, default=0.1)
     parser.add_argument("--threshold", type=float, default=0.9)
-    parser.add_argument("--layer_lambda", type=int, default=2)
-    parser.add_argument("--quantized", action='store_true', help="Use 4 bit quantized model", default=False)
+    parser.add_argument("--layer_lambda", type=str, choices=['2','cosine', 'jsd', 'entropy'], help="Layer selection method for DTC")
     parser.add_argument("--enable_dtc", action='store_true', help="Enable DTC function", default=False)
     parser.add_argument("--seed", type=int, default=42)
     

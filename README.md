@@ -3,6 +3,13 @@
 ## Overview
 This repository contains the code and experiments for investigating whether Visual Contrastive Decoding (VCD) can be adapted to mitigate relation hallucinations in Large Vision-Language Models (LVLMs). While VCD effectively reduces object hallucinations, relation hallucinations remain underexplored. Our project evaluates targeted, relation-specific perturbations against full-image corruption to see if we can provide a stronger contrastive signal for relational reasoning.
 
+## Related Repositories
+* [LLaVA](https://github.com/haotian-liu/LLaVA) - Large Language and Vision Assistant
+* [Grounding DINO](https://github.com/IDEA-Research/Grounding-DINO) - Object detection and grounding
+* [Visual Contrastive Decoding](https://github.com/yuhangzang/VCD) - Mitigating object hallucinations in LVLMs
+* [ReefKnot] (https://github.com/JackChen-seu/Reefknot) - Reefknot: A Benchmark for Relation Hallucination Evaluation, Analysis and Mitigation in MVLMs
+* [R-Bench] (https://github.com/mrwu-mac/R-Bench) - R-Bench: Benchmark with image and instance Level Yes/No Questions
+
 ## Key Methods & Features
 * **Relation-Aware VCD**: Adapts standard VCD by applying Gaussian noise only to specific detected objects or regions instead of the entire image.
 * **Targeted Perturbation Strategies**: Uses Grounding DINO for object detection to perform single object masking, all-object masking, inter-object region masking, and patch-shuffled decoding.
@@ -29,9 +36,23 @@ While a formal `requirements.txt` is not provided, the following models, tools, 
 * [cite_start]**DeBERTa-v2**: Used for bidirectional textual entailment to evaluate VQA question types[cite: 184].
 
 ### 2. Datasets
-You will need to acquire the following benchmarks to run the evaluation scripts:
-* **Reefknot Benchmark**: Built on Visual Genome; includes Y/N, MCQ, and VQA subsets.
-* **R-Bench**: Specifically the image-level subset containing Y/N questions.
+
+#### Reefknot Benchmark
+Built on Visual Genome; includes Y/N, MCQ, and VQA subsets.
+Following scripts run inference using different methods on Reefknot.
+* **VCD (Visual Contrastive Decoding) Based**: [VCD](./Reefknot/LLaVA/vcd_patch_llava.py)
+* **DTC (Detect-then-Calibrate)**: [DTC](./Reefknot/LLaVA/infer_LLaVA_yesandno.py)
+
+The generated result files can be evaluated using: [Reefknot Evaluation](./Mitigate-Relation-Hallucination/evaluation_scripts.py)
+
+#### R-Bench
+Specifically the image-level subset containing Y/N questions.
+Following scripts run the inference for different methods on R-Bench Benchmark Dataset:
+* **VCD (Visual Contrastive Decoding) Based**: [VCD](./Reefknot/LLaVA/llava/eval/eval_rbench_vcd.py)
+* **DTC (Detect-then-Calibrate)**: [DTC](./Reefknot/LLaVA/llava/eval/eval_rbench_dtc.py)
+* **Base Model**: [Base LLAVA Model](./Reefknot/LLaVA/llava/eval/eval_rbench.py)
+
+The result files generated can be evaluated using : [R-Bench Evaluation Script](./r_bench_eval.sh)
 
 ### 3. Compute Infrastructure
 Running inference with large models like LLaVA-13B and contrastive decoding requires significant GPU resources. During development, the following platforms were utilized:

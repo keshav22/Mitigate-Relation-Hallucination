@@ -1,32 +1,115 @@
+
 import copy
 import inspect
 import warnings
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
-
+import numpy as np
+import matplotlib.pyplot as plt
 import torch
 import torch.distributed as dist
-from torch import nn
+import transformers
+import sys
+import os
+import json
 
+from torch import nn
+from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
+from transformers.generation import SampleDecoderOnlyOutput
 from transformers.generation.logits_process import (
     LogitsProcessorList,
 )
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
 from transformers.generation.stopping_criteria import (
     StoppingCriteria,
     StoppingCriteriaList,
     validate_stopping_criteria,
 )
-import transformers
 from transformers.generation.utils import SampleOutput
-from transformers.generation import SampleEncoderDecoderOutput
+from pathlib import Path
+from llava.mm_utils import tokenizer_image_token, get_model_name_from_path
+from llava.conversation import conv_templates
+from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
+from llava.model.builder import load_pretrained_model
+from collections import Counter
 
-from dataclasses import dataclass
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from Utils.utils import normalize_to_yesno, calculate_entropy
+from transformers.generation import SampleEncoderDecoderOutput
 from transformers.generation.utils import SampleDecoderOnlyOutput
 
 @dataclass
 class MyGenerationOutput:
     generation: SampleDecoderOnlyOutput
     attention_cd: torch.Tensor or None
+
+line_counter = 1
+counts = Counter()
+
+def aggregate_counts_and_save(pred, label, cd_logits, next_token_logits, next_token_logits_cd, tokenizer, output_folder, experiment_name):
+    """
+    Saves logits to disk to be used for analysis and debugging
+
+    Args:
+        pred: int, predicted token ID
+        label: str, ground truth
+        cd_logits: Tensor, final logits from contrastive decoding after calibration
+        next_token_logits: Tensor, logits from original decoding
+        next_token_logits_cd: Tensor, logits from contrastive decoding before calibration
+        tokenizer: tokenizer for decoding token IDs
+        output_folder: str, folder to save results
+        experiment_name: str, name of the experiment for organizing saved results
+    """
+
+    global counts
+
+    cd_logits = cd_logits.cpu()
+    next_token_logits = next_token_logits.cpu()
+    next_token_logits_cd = next_token_logits_cd.cpu()
+    
+    if label is None:
+        # print("Warning: label is None")
+        return 
+    pred_norm = normalize_to_yesno(tokenizer.decode([pred]))
+    label_norm = normalize_to_yesno(label)
+    key=""
+    if pred_norm is not None and label_norm is not None:
+        if pred_norm == label_norm:
+            key="correct"
+        else:
+            key="hallucinated"
+    else:
+        key="ambiguous"
+    
+    entropy_before = calculate_entropy(next_token_logits) #all logits
+    entropy_after = calculate_entropy(next_token_logits_cd)
+    entropy_cd = calculate_entropy(cd_logits)
+
+    save_dict = {
+        "pred": pred_norm,
+        "label": label_norm,
+        "cd_logits": cd_logits,
+        "next_token_logits": next_token_logits,
+        "next_token_logits_cd": next_token_logits_cd,
+        "prediction": key,
+        "entropy_before": entropy_before,
+        "entropy_after": entropy_after,
+        "entropy_cd": entropy_cd,
+        "final_entropy": 1 if entropy_cd > entropy_before else -1
+    }
+    subkey = "entropy_increased" if entropy_after > entropy_before else "entropy_decreased"
+    counts[key+"_"+subkey] += 1
+
+    # Save counts to json file after each aggregation (updated always, immediately flushed)
+    counts_output_path = Path(output_folder) / f"aggregate_counts_{experiment_name}.json"
+    counts_output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(counts_output_path, "w") as f:
+        json.dump(counts, f, indent=4)  
+    
+    #save dict to file 
+    output_path = Path(output_folder) / f"{experiment_name}" / f"{line_counter}_prediction_{key}.pt"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(save_dict, output_path)
+
 
 
 def sample(
@@ -46,7 +129,6 @@ def sample(
     streamer: Optional["BaseStreamer"] = None,
     **model_kwargs,
 ) -> Union[SampleOutput, torch.LongTensor]:
-
     # print("Using patched sample function for VCD...")
 
     # init values
@@ -63,6 +145,8 @@ def sample(
     pad_token_id = pad_token_id if pad_token_id is not None else self.generation_config.pad_token_id
     eos_token_id = eos_token_id if eos_token_id is not None else self.generation_config.eos_token_id
 
+    tokenizer = getattr(self, "_vcd_tokenizer") #Adding tokenizer for logging and debugging, can be safely removed later.
+    label = getattr(self.generation_config, "label") #get label from generation config for logging
 
     if isinstance(eos_token_id, int):
         eos_token_id = [eos_token_id]
@@ -98,7 +182,10 @@ def sample(
     unfinished_sequences = torch.ones(input_ids.shape[0], dtype=torch.long, device=input_ids.device)
 
     this_peer_finished = False  # used by synced_gpus only
-    model_kwargs_cd = model_kwargs.copy() # copy model_kwargs for cd only for the first forward process
+    model_kwargs_cd = copy.deepcopy(model_kwargs) # model_kwargs.copy() # copy model_kwargs for cd only for the first forward process
+    first_token_generated = False  # Track if we've generated the first token
+    output_folder = "/home/mt45dumo/runenv/logits" #model_kwargs.get("token_logits_output_folder", None)  # Optional output folder path
+    
     # auto-regressive generation
     while True:
         if synced_gpus:
@@ -127,6 +214,10 @@ def sample(
 
         next_token_logits = outputs.logits[:, -1, :]
         
+        # Log token distribution for the first token generation
+        if not first_token_generated and output_folder is not None:
+            global line_counter
+            line_counter += 1
 
         ## For contrastive decoding initial
         use_cd = model_kwargs.get("images_cd") != None
@@ -142,12 +233,20 @@ def sample(
         if use_cd:
             ## cd_comments: forward pass of the model with distorted image input
             model_inputs_cd = self.prepare_inputs_for_generation_cd(input_ids, **model_kwargs_cd)
+            
+            #model_inputs_cd == model_inputs in all but "images" value
+            #print("model_inputs", model_inputs.keys())
+            #^doesn't have "images" key, since LlavaLlamaForCausalLM.generate() preprocesses images into inputs_embeds, a key of model_inputs dict
+            #print("model_inputs_cd", model_inputs_cd.keys())
+
             outputs_cd = self(
                 **model_inputs_cd,
                 return_dict=True,
                 output_attentions=output_attentions_wo_img,
                 output_hidden_states=output_hidden_states_wo_img,
             )
+
+
             next_token_logits_cd = outputs_cd.logits[:, -1, :]
             
             if attention_cd is not None:
@@ -158,8 +257,11 @@ def sample(
             assert(torch.equal(next_token_logits_cd, next_token_logits) == False)
             
             ## cd_comments: pre-process logits from contrastive inputs
-            cd_alpha = model_kwargs.get("cd_alpha") if model_kwargs.get("cd_alpha") is not None else 0.5
-            cd_beta = model_kwargs.get("cd_beta") if model_kwargs.get("cd_beta") is not None else 0.1
+            cd_alpha = getattr(self.generation_config, "cd_alpha", 1)
+            cd_beta = getattr(self.generation_config, "cd_beta", 0.2)
+            experiment_name = getattr(self.generation_config, "experiment_name", "default_experiment")
+            
+            # Log token distribution for CD logits (first token generation only)
             
             # version 1  set cutoff for Adaptive Plausibility Constraints
             # probs = nn.functional.softmax(next_token_logits, dim=-1)
@@ -170,14 +272,17 @@ def sample(
             
             diffs = (1+cd_alpha)*next_token_logits - cd_alpha*next_token_logits_cd
             cd_logits = diffs.masked_fill(next_token_logits < cutoff, -float("inf"))
+            cd_logits_copy = cd_logits.clone()
 
             ## cd_comments: apply temperature warping and top-k filtering in contrastive decoding
             cd_logits = logits_processor(input_ids, cd_logits)
             cd_logits = logits_warper(input_ids, cd_logits)
 
+
             next_token_scores = cd_logits
             cd_probs = nn.functional.softmax(cd_logits, dim=-1)
             next_tokens = torch.multinomial(cd_probs, num_samples=1).squeeze(1)
+
         else:
             next_token_scores = logits_processor(input_ids, next_token_logits)
             next_token_scores = logits_warper(input_ids, next_token_scores)
@@ -196,7 +301,6 @@ def sample(
                 )
                 if self.config.is_encoder_decoder:
                     cross_attentions += (outputs.cross_attentions,)
-
             if output_hidden_states:
                 decoder_hidden_states += (
                     (outputs.decoder_hidden_states,)
@@ -215,6 +319,12 @@ def sample(
         input_ids = torch.cat([input_ids, next_tokens[:, None]], dim=-1)
         if streamer is not None:
             streamer.put(next_tokens.cpu())
+        
+        # Mark first token as generated after we've logged the logits
+        if not first_token_generated and use_cd:
+            aggregate_counts_and_save(pred=next_tokens.item(), label=label, cd_logits=cd_logits_copy, next_token_logits=next_token_logits, next_token_logits_cd=next_token_logits_cd,tokenizer=tokenizer, output_folder=output_folder, experiment_name=experiment_name)
+        first_token_generated = True
+        
         model_kwargs = self._update_model_kwargs_for_generation(
             outputs, model_kwargs, is_encoder_decoder=self.config.is_encoder_decoder
         )
@@ -269,14 +379,23 @@ def sample(
     else:
         return input_ids
 
-def patched_validate_model_kwargs(self, model_kwargs):
-    return model_kwargs
-
-
+def _stash_vcd_to_config(self, kwargs: dict):
+    for k in ("cd_alpha", "cd_beta", "label", "experiment_name"):  #Added extra params for debugging and logging.
+        if k in kwargs:
+            setattr(self.generation_config, f"{k}", kwargs.pop(k))
 
 def evolve_vcd_sampling():
     # print("Patching Transformers sample function for VCD...")
     transformers.generation.utils.GenerationMixin.sample = sample
     # sample is now a protected function in the latest Transformers library
     transformers.generation.utils.GenerationMixin._sample = sample
-    transformers.generation.utils.GenerationMixin._validate_model_kwargs = patched_validate_model_kwargs
+
+    _orig_generate = transformers.generation.utils.GenerationMixin.generate
+    def _generate_patch(self, *args, **kwargs):
+        vcd_tk = kwargs.pop("tokenizer")                #Saving tokenizer for logging and debugging
+    
+        # This line is what creates the attribute on the model
+        self._vcd_tokenizer = vcd_tk
+        _stash_vcd_to_config(self, kwargs)
+        return _orig_generate(self, *args, **kwargs)
+    transformers.generation.utils.GenerationMixin.generate = _generate_patch

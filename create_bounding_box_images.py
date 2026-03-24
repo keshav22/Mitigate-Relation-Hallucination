@@ -1,6 +1,6 @@
 import json,os
 from collections import Counter
-from tkinter import Image
+from PIL import Image
 import sys
 import numpy as np
 from PIL import ImageDraw
@@ -11,7 +11,7 @@ from Utils.utils import get_path
 OBJECTS = {}
 imageid_qnobj_map = {}
 
-def draw_bounding_box_on_images(yes_no_questions = "Reefknot/Dataset/YESNO.jsonl",image_dir = "/work/scratch/kurse/kurs00097/as37puta/visual_genome", image_qn_object_map_json="/work/scratch/kurse/kurs00097/mt45dumo/Mitigate-Relation-Hallucination/image_qnobject_map.json", objects_json="Reefknot/Dataset/objects.json"):
+def draw_bounding_box_on_images(yes_no_questions ,image_dir , image_qn_object_map_json, objects_json="Reefknot/Dataset/objects.json"):
     global imageid_qnobj_map 
     bb_data = {}
     objects_in_question = []

@@ -66,6 +66,8 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         images: Optional[torch.FloatTensor] = None,
+        images_cd: Optional[torch.FloatTensor] = None, #merely present here for GenerationMixin._validate_model_kwargs
+        original_inputs: Optional[torch.LongTensor] = None, #^same
         image_sizes: Optional[List[List[int]]] = None,
         return_dict: Optional[bool] = None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
@@ -113,6 +115,12 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
         attention_mask = kwargs.pop("attention_mask", None)
         if "inputs_embeds" in kwargs:
             raise NotImplementedError("`inputs_embeds` is not supported")
+        
+        assert("original_inputs" not in kwargs)
+        kwargs["original_inputs"] = inputs.clone() #if inputs is not None else None
+
+        assert("original_attention_mask" not in kwargs)
+        kwargs["original_attention_mask"] = attention_mask.clone() if attention_mask is not None else None
 
         if images is not None:
             (
@@ -159,19 +167,49 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
     ):
         if past_key_values:
             input_ids = input_ids[:, -1:]
-
+        
         # if `inputs_embeds` are passed, we only want to use them in the 1st generation step
+        #since in later steps, input_ids and past_key_values is used, this is normal.
+        
         if inputs_embeds is not None and past_key_values is None:
+            model_inputs = {"inputs_embeds": inputs_embeds}
+            #^bug: but for VCD, we don't want to reuse the input_embeds. it contains the original image!
+            #"images" is ignored: forward() ignores "images" key when inputs_embeds is present
+            
+            #new code, fixed:
+            assert(kwargs.get("images_cd") is not None)
+            print(kwargs.get("original_inputs").shape[1])
+            (
+                input_ids,
+                position_ids,
+                attention_mask,
+                _,
+                inputs_embeds,
+                _
+            ) = self.prepare_inputs_labels_for_multimodal(
+                kwargs.get("original_inputs"),
+                kwargs.get("position_ids"),
+                kwargs.get("original_attention_mask"),
+                None,
+                None,
+                kwargs.get("images_cd"), #<- this is the fix
+                image_sizes=kwargs.get("image_sizes", None)
+            )
+            assert(inputs_embeds is not None)
             model_inputs = {"inputs_embeds": inputs_embeds}
         else:
             model_inputs = {"input_ids": input_ids}
+            #"images" is ignored: forward()->prepare_inputs_labels_for_multimodal() does not read "images" if `input_ids.shape[1] == 1`
+            
+        #nico: inputs_embeds is already spoiled with the initial,original image. This propagates to past_key_values.
+        #past_key_values, is used instead of input_embeds from the 2nd step on.
 
         model_inputs.update(
             {
                 "past_key_values": past_key_values,
                 "use_cache": kwargs.get("use_cache"),
                 "attention_mask": attention_mask,
-                "images": kwargs.get("images_cd", None),
+                "images": kwargs.get("images_cd"),
             }
         )
         return model_inputs
